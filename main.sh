@@ -62,7 +62,8 @@ argumentProcess (){
 
 		case $key in 
 		--install) # install 
-			echo "install"
+			# install patches
+			cp -prv dtc-openwrt/patches/* .
 			shift
 			;;
 		--uninstall) # uninstall
@@ -92,6 +93,11 @@ argumentProcess (){
 # --- end of functions ---
 
 # --- main starts here ---
+
+# check caller directory
+if [ ! -d "dtc-openwrt" ]; then
+	error "Wrong caller location. There is no dtc-openwrt folder under current folder"
+fi
 
 # process arguments
 argumentProcess $@

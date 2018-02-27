@@ -1,0 +1,117 @@
+Index: linux-4.9.82/net/ipv4/tcp_output.c
+===================================================================
+--- linux-4.9.82.orig/net/ipv4/tcp_output.c
++++ linux-4.9.82/net/ipv4/tcp_output.c
+@@ -793,15 +793,19 @@ static void tcp_tasklet_func(unsigned lo
+ 				goto exit;
+ 
+ 			/* defer the work to tcp_release_cb() */
+-			set_bit(TCP_TSQ_DEFERRED, &tp->tsq_flags);
++			// dtc
++			// set_bit(TCP_TSQ_DEFERRED, &tp->tsq_flags);
++			set_bit(TCP_TSQ_DEFERRED, &meta_sk->sk_tsq_flags);
+ 	
+ 			if (mptcp(tp))
+ 				mptcp_tsq_flags(sk);
+ 		}
+ exit:
+ 		bh_unlock_sock(meta_sk);
+-
+-		clear_bit(TSQ_QUEUED, &tp->tsq_flags);
++		
++		// dtc
++		// clear_bit(TSQ_QUEUED, &tp->tsq_flags);
++		clear_bit(TSQ_QUEUED, &meta_sk->sk_tsq_flags);
+ 		sk_free(sk);
+ 	}
+ }
+Index: linux-4.9.82/net/mptcp/mptcp_ctrl.c
+===================================================================
+--- linux-4.9.82.orig/net/mptcp/mptcp_ctrl.c
++++ linux-4.9.82/net/mptcp/mptcp_ctrl.c
+@@ -1149,7 +1149,9 @@ static int mptcp_alloc_mpcb(struct sock
+ 	tcp_prequeue_init(master_tp);
+ 	INIT_LIST_HEAD(&master_tp->tsq_node);
+ 
+-	master_tp->tsq_flags = 0;
++	// dtc
++	// master_tp->tsq_flags = 0;
++	master_sk->sk_tsq_flags = 0;
+ 
+ 	mutex_init(&mpcb->mpcb_mutex);
+ 
+@@ -2109,7 +2111,9 @@ struct sock *mptcp_check_req_child(struc
+ 	child_tp->mptcp->rcv_isn = tcp_rsk(req)->rcv_isn;
+ 	child_tp->mptcp->init_rcv_wnd = req->rsk_rcv_wnd;
+ 
+-	child_tp->tsq_flags = 0;
++	// dtc
++	// child_tp->tsq_flags = 0;
++	child->sk_tsq_flags = 0;
+ 	child_tp->out_of_order_queue = RB_ROOT;
+ 
+ 	sock_rps_save_rxhash(child, skb);
+@@ -2264,7 +2268,9 @@ void mptcp_tsq_flags(struct sock *sk)
+ 		sock_hold(sk);
+ 	}
+ 
+-	if (!test_and_set_bit(MPTCP_SUB_DEFERRED, &tcp_sk(meta_sk)->tsq_flags))
++	// dtc
++	// if (!test_and_set_bit(MPTCP_SUB_DEFERRED, &tcp_sk(meta_sk)->tsq_flags))
++	if (!test_and_set_bit(MPTCP_SUB_DEFERRED, &meta_sk->sk_tsq_flags))
+ 		sock_hold(meta_sk);
+ }
+ 
+Index: linux-4.9.82/net/mptcp/mptcp_fullmesh.c
+===================================================================
+--- linux-4.9.82.orig/net/mptcp/mptcp_fullmesh.c
++++ linux-4.9.82/net/mptcp/mptcp_fullmesh.c
+@@ -872,7 +872,9 @@ duno:
+ 
+ 			if (sock_owned_by_user(meta_sk)) {
+ 				if (!test_and_set_bit(MPTCP_PATH_MANAGER_DEFERRED,
+-						      &meta_tp->tsq_flags))
++						     //dtc
++						     // &meta_tp->tsq_flags))
++							 &meta_sk->sk_tsq_flags)) 
+ 					sock_hold(meta_sk);
+ 
+ 				goto next;
+Index: linux-4.9.82/net/mptcp/mptcp_sched.c
+===================================================================
+--- linux-4.9.82.orig/net/mptcp/mptcp_sched.c
++++ linux-4.9.82/net/mptcp/mptcp_sched.c
+@@ -43,6 +43,9 @@ static bool mptcp_is_temp_unavailable(st
+ 	const struct tcp_sock *tp = tcp_sk(sk);
+ 	unsigned int mss_now, space, in_flight;
+ 
++	//dtc
++	struct sock *meta_sk = mptcp_meta_sk(sk);
++
+ 	if (inet_csk(sk)->icsk_ca_state == TCP_CA_Loss) {
+ 		/* If SACK is disabled, and we got a loss, TCP does not exit
+ 		 * the loss-state until something above high_seq has been
+@@ -68,7 +71,9 @@ static bool mptcp_is_temp_unavailable(st
+ 	/* If TSQ is already throttling us, do not send on this subflow. When
+ 	 * TSQ gets cleared the subflow becomes eligible again.
+ 	 */
+-	if (test_bit(TSQ_THROTTLED, &tp->tsq_flags))
++	// dtc
++	//if (test_bit(TSQ_THROTTLED, &tp->tsq_flags))
++	if (test_bit(TSQ_THROTTLED, &meta_sk->sk_tsq_flags)) 
+ 		return true;
+ 
+ 	in_flight = tcp_packets_in_flight(tp);
+Index: linux-4.9.82/include/net/transp_v6.h
+===================================================================
+--- linux-4.9.82.orig/include/net/transp_v6.h
++++ linux-4.9.82/include/net/transp_v6.h
+@@ -51,6 +51,8 @@ void ip6_dgram_sock_seq_show(struct seq_
+ 
+ /* address family specific functions */
+ extern const struct inet_connection_sock_af_ops ipv4_specific;
++extern const struct inet_connection_sock_af_ops ipv6_mapped;
++extern const struct inet_connection_sock_af_ops ipv6_specific;
+ 
+ void inet6_destroy_sock(struct sock *sk);
+ 
