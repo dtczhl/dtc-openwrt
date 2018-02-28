@@ -6,7 +6,9 @@
 # www.huanlezhang.com
 
 # --- Configuration Zone ---
+KERNEL_PATCHVER=4.9
 
+LINUX_VERSION_4_9=.82
 
 # --- End of configuration zone ---
 
@@ -68,12 +70,26 @@ argumentProcess (){
 			# install patches
 			echo "install patches"
 			cp -pr dtc-openwrt/patches/* .
+            
+            # x86
+            # make sure kernel version is correct
+            echo "x86 Makefile in target/linux/x86/"
+            # avoid corrupting the original files
+            if [ ! -f ./target/linux/x86/Makefile.orig ]; then 
+                cp ./target/linux/x86/Makefile ./target/linux/x86/Makefile.orig
+                sed -i -e "s/.*KERNEL_PATCHVER.*/KERNEL_PATCHVER=${KERNEL_PATCHVER}  # dtc/" ./target/linux/x86/Makefile
+            fi 
 			shift
 			;;
 		--uninstall) # uninstall
 			# uninstall 
 			echo "remove patches"
 			${CURRENT_PATH}/tools/undo_cp.sh "$(pwd -P)/dtc-openwrt/patches" "$(pwd -P)"
+
+            # x86
+            echo "x86 Makefile recover in target/linux/x86"
+            cp ./target/linux/x86/Makefile.orig ./target/linux/x86/Makefile
+            rm ./target/linux/x86/Makefile.orig
 			shift
 			;;
 		--package-update) # update package
