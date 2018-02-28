@@ -56,6 +56,9 @@ argumentProcess (){
 		usage 
 		exit
 	fi 
+	
+	# change color
+	echo -ne "${YELLOW}"
 
 	while [[ $# -gt 0 ]]; do
 		key="$1"
@@ -63,11 +66,14 @@ argumentProcess (){
 		case $key in 
 		--install) # install 
 			# install patches
-			cp -prv dtc-openwrt/patches/* .
+			echo "install patches"
+			cp -pr dtc-openwrt/patches/* .
 			shift
 			;;
 		--uninstall) # uninstall
-			echo "uninstall"
+			# uninstall 
+			echo "remove patches"
+			${CURRENT_PATH}/tools/undo_cp.sh "$(pwd -P)/dtc-openwrt/patches" "$(pwd -P)"
 			shift
 			;;
 		--package-update) # update package
@@ -88,6 +94,9 @@ argumentProcess (){
 			;;
 		esac 
 	done
+
+	# recover color
+	echo -ne "${NC}"
 }
 
 # --- end of functions ---
