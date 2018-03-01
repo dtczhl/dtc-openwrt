@@ -77,7 +77,7 @@ argumentProcess (){
             # avoid corrupting the original files
             if [ ! -f ./target/linux/x86/Makefile.orig ]; then 
                 cp ./target/linux/x86/Makefile ./target/linux/x86/Makefile.orig
-                sed -i -e "s/.*KERNEL_PATCHVER.*/KERNEL_PATCHVER=${KERNEL_PATCHVER}  # dtc/" ./target/linux/x86/Makefile
+                sed -i -e "s/.*KERNEL_PATCHVER.*/#dtc\nKERNEL_PATCHVER=${KERNEL_PATCHVER}/" ./target/linux/x86/Makefile
             fi 
 			shift
 			;;
