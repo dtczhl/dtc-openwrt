@@ -94,10 +94,12 @@ argumentProcess (){
 			;;
 		--package-update) # update package
 			echo "package update"
+            cp -r ${CURRENT_PATH}/packages/* package/feeds/
 			shift
 			;;
 		--package-remove) # remove package
 			echo "package remove"
+            rm -rf package/feeds/dtc_*
 			shift
 			;;
 		--help)
