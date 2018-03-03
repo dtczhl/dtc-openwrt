@@ -1,6 +1,10 @@
 # dtc-openwrt
 Customized OpenWrt system
 
+Huanle Zhang at UC Davis
+
+[www.huanlezhang.com](http://www.huanlezhang.com)
+
 ### Check and install required tools
 
 Refer to [OpenWrt build system -- Installation](https://wiki.openwrt.org/doc/howto/buildroot.exigence)
