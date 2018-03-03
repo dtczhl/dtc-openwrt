@@ -29,19 +29,29 @@ I copied the command to install the tools for Ubuntu 64bit here
 
     `git clone https://github.com/dtczhl/dtc-openwrt.git`
     
-4. Install my customized system. Run 
+4. Install my system configuration. Run 
 
     `./dtc-openwrt/main.sh --install`
     
     It will modify kernels, install my packages, etc...
     
-5. Build as usual way of building OpenWrt, run
+5. Install my packages. Run
 
-    `./scripts/feeds install -a`
+    `./dtc-openwrt/main.sh --package-update`
     
+    My packages are installed in package/feeds/	
+    
+6. Build as usual way of building OpenWrt, run
+
     `./scripts/feeds update -a`
     
-    `make menuconfig`  My packages are under `DTC` tag
+    `./scripts/feeds install -a`
+    
+    `make menuconfig` 
+ 
+     * My packages are under `DTC` tag
+     * Configure and then run
+     	* `make V=s`
     
     
 ## Uninstall
@@ -50,7 +60,11 @@ I copied the command to install the tools for Ubuntu 64bit here
 
     `./dtc-openwrt/main.sh --uninstall`
     
-    It rolls back to the official version before my modifications.
+    It rolls back to the official version before my system configuration.
+ 
+ 2. Remove my packages, run
+ 
+ 	`./dtc-openwrt/main.sh --package-remove`
     
 ## Package Updating and Removing
 

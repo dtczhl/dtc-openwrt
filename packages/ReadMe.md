@@ -6,4 +6,4 @@ Huanle Zhang at UC Davis
 
 ## Note 
 
-1. Package name must starts with dtc_, otherwise main.sh cannot remove packages
+1. Package folders must start with dtc_, otherwise main.sh cannot remove packages
