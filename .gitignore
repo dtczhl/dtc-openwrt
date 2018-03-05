@@ -1,2 +1,5 @@
 
 *.o
+
+# ignore executable files under packages/
+packages/dtc_tcp_txrx/src/dtc_tcp_txrx
