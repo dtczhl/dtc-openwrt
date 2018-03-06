@@ -1,6 +1,8 @@
 /* 
  * Customized TCP sender and receiver
  *
+ * Note:
+ * 1) Server only accepts one connection
  *
  * Huanle Zhang at UC Davis
  * www.huanlezhang.com
@@ -14,6 +16,7 @@
 #include <sys/socket.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <time.h>
 
 static const int print_interval = 5; // 5 seconds
 
@@ -30,6 +33,8 @@ static unsigned long packet_send_count = 0;
 
 static char debug_string_buffer[100];
 
+static struct timespec delay; 
+
 // ------ argument processing ------
 static int server_or_client = -1; // 1 - server; 2 - client
 
@@ -45,6 +50,7 @@ static char self_ip_str[INET_ADDRSTRLEN] = "0.0.0.0";
 static char self_port_str[INET_PORTSTRLEN] = "0";
 
 static int print_packet = 0; // print packet or not
+static int echo_back = 0; // 
 
 // ------ end of argument processing ------
 
@@ -82,6 +88,8 @@ void usage(void)
 /*
  * If --client && --send-file is not specified, then put seq number in the first 4 bytes 
  *      of payload. Packet length is set to the buffer length
+ *
+ *  --echo-back only works on server
  */
 }
 
@@ -132,6 +140,8 @@ void argumentProcess(int argc, char **argv)
                 die("*** Error\n --self-address cannot convert port back");
         } else if (strcmp(argv[i], "--print-packet") == 0){
             print_packet = 1;
+        } else if (strcmp(argv[i], "--echo-back") == 0){
+           echo_back = 1; 
         } else {
             snprintf(debug_string_buffer, sizeof(debug_string_buffer), 
                     "*** Error\n unknown argument: %s", argv[i]);
@@ -174,6 +184,11 @@ void argumentProcess(int argc, char **argv)
 
     send_buffer = (char *) malloc(send_buffer_len);
     recv_buffer = (char *) malloc(recv_buffer_len);
+    memset(send_buffer, 0, send_buffer_len);
+    memset(recv_buffer, 0, recv_buffer_len);
+
+    delay.tv_sec = 1;
+    delay.tv_nsec = 0;
     
     // print detailed information
     printf("------ Configuration Info ------\n");
@@ -183,23 +198,33 @@ void argumentProcess(int argc, char **argv)
     } else if (server_or_client == 2){
         printf("TCP client\n");
     }
-    
-    printf("Target IP: %s\n", target_ip_str);
-    printf("Target Port: %s\n", target_port_str);
-    
-    printf("Self IP: %s\n", self_ip_str);
-    printf("Self Port: %s\n", self_port_str);
    
-    printf("Print packet: " );
-    print_packet == 0 ? printf("False\n") : printf("True\n");
+    if (server_or_client == 1){
+        // server info
+        printf("Self IP: %s\n", self_ip_str);
+        printf("Self Port: %s\n", self_port_str);
+        
+        printf("Print packet: " );
+        print_packet == 0 ? printf("False\n") : printf("True\n");
 
+        printf("Echo back: ");
+        echo_back == 0 ? printf("Flase\n") : printf("True\n");
+    } else if (server_or_client == 2){
+        printf("Target IP: %s\n", target_ip_str);
+        printf("Target Port: %s\n", target_port_str);
+        
+        printf("Print packet: " );
+        print_packet == 0 ? printf("False\n") : printf("True\n");
+    }
+    
     printf("------ End of Configuration Info ------\n");
 }
 
 static int packet_read_size = 0;
 void timer_handler(int signum)
 {
-    printf("packet #: %ld %.*s\n", packet_recv_count, packet_read_size, recv_buffer);
+    if (packet_read_size > 0)
+        printf("packet #: %ld %.*s\n", packet_recv_count, packet_read_size, recv_buffer);
 }
 
 int main(int argc, char **argv)
@@ -266,7 +291,14 @@ void startServer(void)
     while (1){
         packet_read_size = recv(connection_fd, recv_buffer, recv_buffer_len, 0);
         
-        if (packet_read_size > 0) packet_recv_count++;
+        if (packet_read_size > 0) {
+            packet_recv_count++;
+
+            if (echo_back == 1 && 
+                    write(connection_fd, recv_buffer, packet_read_size) == -1){
+                die("*** Error\n write in startServer() failed");
+            }
+        }
     }
 
     if (print_packet == 1){
@@ -282,5 +314,57 @@ void startServer(void)
 
 void startClient(void)
 {
-    return;
+    int server_fd = 0;
+    
+    // timer related
+    struct sigaction sa;
+    struct itimerval timer;
+
+    if (print_packet == 1){
+        memset(&sa, 0, sizeof(sa));
+        sa.sa_handler = &timer_handler;
+        sigaction(SIGALRM, &sa, NULL);
+        timer.it_value.tv_sec = print_interval;
+        timer.it_value.tv_usec = 0;
+        timer.it_interval.tv_sec = print_interval;
+        timer.it_interval.tv_usec = 0;
+    }
+
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd == -1){
+        die("*** Error\n socket in startClient() failed");
+    }
+
+    if (connect(server_fd, (struct sockaddr *)&si_target, sizeof(si_target)) == -1){
+        die ("** Error\n connect in startClient() failed");
+    }
+
+    if (print_packet == 1) setitimer(ITIMER_REAL, &timer, NULL);
+
+    while (1){
+        packet_send_count++;
+        /*
+        send_buffer[0] = (char) (packet_send_count >> 24);
+        send_buffer[1] = (char) (packet_send_count >> 16);
+        send_buffer[2] = (char) (packet_send_count >> 8);
+        send_buffer[3] = (char) (packet_recv_count >> 0);
+        */
+        send_buffer[0] = '0' + (packet_send_count/1000) % 10;
+        send_buffer[1] = '0' + (packet_send_count/100) % 10;
+        send_buffer[2] = '0' + (packet_send_count/10) % 10;
+        send_buffer[3] = '0' + (packet_send_count) % 10;
+
+        nanosleep(&delay, NULL);
+
+        if (send(server_fd, send_buffer, 4, 0) < 0){
+            die("*** Error\n send in startClient() failed");
+        }
+
+        packet_read_size = recv(server_fd, recv_buffer, recv_buffer_len, MSG_DONTWAIT); 
+        if (packet_read_size > 0)
+            packet_recv_count++;
+    }
+
+    close(server_fd);
+    printf("Exit Client\n");
 }
