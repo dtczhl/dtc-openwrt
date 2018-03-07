@@ -13,7 +13,7 @@ Appy to PC Engine APU2
 	
 3. Flash firmware to the flash disk
 
-	`sudo dd if=[*]-combined-ext4-img.gz of=/dev/[sdb] bs=1M`
+	`sudo dd if=[*]-combined-ext4-img of=/dev/[sdb] bs=1M`
 	
 4. Config minicom, with 115200 8N1 hard:yes soft:no
 
