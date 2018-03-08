@@ -17,6 +17,8 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <time.h>
+#include <sys/select.h>
+#include <pthread.h>
 
 #include "dtc_sleep.h"
 
@@ -103,6 +105,9 @@ void argumentProcess(int argc, char **argv)
         exit(0);
     }
 
+    send_interval.tv_sec = 0;
+    send_interval.tv_nsec = 0;
+
     for (int i = 1; i < argc; i++){
         if (strcmp(argv[i], "--server") == 0){
             if (server_or_client != -1){
@@ -183,13 +188,16 @@ void argumentProcess(int argc, char **argv)
         si_target.sin_family = AF_INET;
         si_target.sin_addr.s_addr = target_ip;
         si_target.sin_port = target_port;
-        
+       
+        if (send_interval.tv_sec == 0 && send_interval.tv_nsec == 0)
+            die("*** Error\n Client must specify --send-interval");
+
         // self process
         si_self.sin_family = AF_INET;
         si_self.sin_addr.s_addr = self_ip == 0 ? INADDR_ANY : self_ip;
         si_self.sin_port = self_port; // 0 is allowed for any port
     } else {
-        die("server_or_client error in checking");
+        die("*** Error\n server_or_client error in checking");
     }
 
     send_buffer = (char *) malloc(send_buffer_len);
@@ -222,6 +230,8 @@ void argumentProcess(int argc, char **argv)
         
         printf("Print packet: " );
         print_packet == 0 ? printf("False\n") : printf("True\n");
+
+        printf("Packet send interval: %ld (s) %ld (ns)\n", send_interval.tv_sec, send_interval.tv_nsec);
     }
     
     printf("------ End of Configuration Info ------\n");
@@ -319,14 +329,27 @@ void startServer(void)
     close(server_fd);
 }
 
+// ------ client processing ------
+static int server_fd = 0;
+
+// client packet reception thread
+void *client_packet_reception(void *threadid)
+{
+    while (1) {
+        packet_read_size = recv(server_fd, recv_buffer, recv_buffer_len, 0); 
+        packet_recv_count++;
+    }
+}
+
 void startClient(void)
 {
-    int server_fd = 0;
     struct timespec ts_current;
     
     // timer related
     struct sigaction sa;
     struct itimerval timer;
+    pthread_t packet_reception_thread;
+    long t;
 
     if (print_packet == 1){
         memset(&sa, 0, sizeof(sa));
@@ -345,6 +368,12 @@ void startClient(void)
 
     if (connect(server_fd, (struct sockaddr *)&si_target, sizeof(si_target)) == -1){
         die ("** Error\n connect in startClient() failed");
+    }
+
+    // create thread for packet reception
+    if (pthread_create(&packet_reception_thread, NULL, 
+                client_packet_reception, (void*)t) != 0){
+        die ("Error\n pthread_create in startClient() failed");
     }
 
     if (print_packet == 1) setitimer(ITIMER_REAL, &timer, NULL);
@@ -370,10 +399,6 @@ void startClient(void)
         if (send(server_fd, send_buffer, 4, 0) < 0){
             die("*** Error\n send in startClient() failed");
         }
-
-        packet_read_size = recv(server_fd, recv_buffer, recv_buffer_len, MSG_DONTWAIT); 
-        if (packet_read_size > 0)
-            packet_recv_count++;
 
         ts_current.tv_nsec += send_interval.tv_nsec;
         while (ts_current.tv_nsec > 1E9) {
