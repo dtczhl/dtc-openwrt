@@ -3,11 +3,8 @@ myProgramName = dtc_tcp_txrx
 # Huanle Zhang at UC Davis
 # www.huanlezhang.com
 
-main: main.o
-	$(CC) $(LDFLAGS) main.o -o $(myProgramName)
-
-main.o: main.c
-	$(CC) $(CFLAGS) -c main.c
+main: dtc_sleep.h dtc_sleep.c main.c 
+	$(CC) $(LDFLAGS) main.c dtc_sleep.c -o $(myProgramName)
 
 clean:
 	rm *.o $(myProgramName)

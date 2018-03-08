@@ -1,9 +1,11 @@
 include $(TOPDIR)/rules.mk
 
+#
 # Huanle Zhang
 # www.huanlezhang.com
+#
 
-PKG_NAME:=dtc_tcp_txrx
+PKG_NAME:=dtc_include
 PKG_VERSION:=1.0.1
 PKG_RELEASE:=1
 
@@ -13,28 +15,26 @@ include $(INCLUDE_DIR)/package.mk
 
 define Package/$(PKG_NAME)
 	CATEGORY:=DTC_OPENWRT
-	TITLE:=TCP sender and receiver
+	TITLE:=customized .h and .c files for other packages
 	MAINTAINER:=Huanle Zhang
 	URL:=www.huanlezhang.com
-	DEPENDS:=+dtc_include
 	DEFAULT:=y
 endef
 
 define Package/$(PKG_NAME)/description
-	Customized TCP-based sender and receiver 
+	Provide common .h .c files for other packages
 endef
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	$(CP) ./src/* $(PKG_BUILD_DIR)/
+	$(CP) ./src $(PKG_BUILD_DIR)/
 
-	# cp dtc_include files
-	$(CP) ../dtc_include/src/* $(PKG_BUILD_DIR)/
+	# empty Makefile 
+	echo "target: ;" > $(PKG_BUILD_DIR)/Makefile
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/usr/bin 
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/usr/bin/
+	# do nothing
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

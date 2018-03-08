@@ -18,6 +18,8 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include "dtc_sleep.h"
+
 static const int print_interval = 5; // 5 seconds
 
 static const int send_buffer_len = 2000;
@@ -32,8 +34,6 @@ static unsigned long packet_recv_count = 0;
 static unsigned long packet_send_count = 0;
 
 static char debug_string_buffer[100];
-
-static struct timespec delay; 
 
 // ------ argument processing ------
 static int server_or_client = -1; // 1 - server; 2 - client
@@ -52,12 +52,12 @@ static char self_port_str[INET_PORTSTRLEN] = "0";
 static int print_packet = 0; // print packet or not
 static int echo_back = 0; // 
 
+static struct timespec send_interval; // packet send interval for client
+
 // ------ end of argument processing ------
 
 void startServer(void);
 void startClient(void);
-
-
 
 void die(const char *s)
 {
@@ -72,6 +72,7 @@ void usage(void)
     printf("        [--send-file file_path] [--recv-file filename]\n");
     printf("        [--record-directory directory_path] [--record-id id]\n");
     printf("        [--send-log] [--recv-log]\n");
+    printf("        [--send-interval nanoseconds]\n");
     printf("        [--print-packet] [--echo-back]\n");
     printf("        [--help]\n");
     printf("    --server|--client (required)    TCP server or client\n");
@@ -80,6 +81,7 @@ void usage(void)
     printf("    --send-file file_path           point to the file to be send\n");
     printf("    --recv-file filename            save payload to file\n");
     printf("    --send-log                      log detailed send information\n");
+    printf("    --send-interval nanoseconds     packet sending interval\n");
     printf("    --recv-log                      log detailed recv information\n");
     printf("    --print-packet                  print packet seq and content every 5 seconds\n");
     printf("    --echo-back                     echo back the received packets\n");
@@ -142,6 +144,14 @@ void argumentProcess(int argc, char **argv)
             print_packet = 1;
         } else if (strcmp(argv[i], "--echo-back") == 0){
            echo_back = 1; 
+        } else if (strcmp(argv[i], "--send-interval") == 0){
+            i++;
+            send_interval.tv_sec = 0;
+            send_interval.tv_nsec = atol(argv[i]);
+            while (send_interval.tv_nsec > 1E9){
+                send_interval.tv_sec++;
+                send_interval.tv_nsec -= 1E9;
+            }
         } else {
             snprintf(debug_string_buffer, sizeof(debug_string_buffer), 
                     "*** Error\n unknown argument: %s", argv[i]);
@@ -187,9 +197,6 @@ void argumentProcess(int argc, char **argv)
     memset(send_buffer, 0, send_buffer_len);
     memset(recv_buffer, 0, recv_buffer_len);
 
-    delay.tv_sec = 1;
-    delay.tv_nsec = 0;
-    
     // print detailed information
     printf("------ Configuration Info ------\n");
     printf("Mode: ");
@@ -315,6 +322,7 @@ void startServer(void)
 void startClient(void)
 {
     int server_fd = 0;
+    struct timespec ts_current;
     
     // timer related
     struct sigaction sa;
@@ -341,6 +349,9 @@ void startClient(void)
 
     if (print_packet == 1) setitimer(ITIMER_REAL, &timer, NULL);
 
+    if (clock_gettime(CLOCK_MONOTONIC, &ts_current) != 0)
+        die("*** Error\n clock_gettime in startClient() failed");
+
     while (1){
         packet_send_count++;
         /*
@@ -354,7 +365,7 @@ void startClient(void)
         send_buffer[2] = '0' + (packet_send_count/10) % 10;
         send_buffer[3] = '0' + (packet_send_count) % 10;
 
-        nanosleep(&delay, NULL);
+        dtc_sleep(&ts_current, &send_interval);
 
         if (send(server_fd, send_buffer, 4, 0) < 0){
             die("*** Error\n send in startClient() failed");
@@ -363,6 +374,12 @@ void startClient(void)
         packet_read_size = recv(server_fd, recv_buffer, recv_buffer_len, MSG_DONTWAIT); 
         if (packet_read_size > 0)
             packet_recv_count++;
+
+        ts_current.tv_nsec += send_interval.tv_nsec;
+        while (ts_current.tv_nsec > 1E9) {
+            ts_current.tv_sec++;
+            ts_current.tv_nsec -= 1E9;
+        }
     }
 
     close(server_fd);

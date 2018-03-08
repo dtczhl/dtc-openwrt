@@ -6,7 +6,7 @@
 # www.huanlezhang.com
 
 
-if [ $# -ne 1]; then
+if [ $# -ne 1 ]; then
     echo "*** Error!"
     echo "dtcKillProgram program_name"
 fi
