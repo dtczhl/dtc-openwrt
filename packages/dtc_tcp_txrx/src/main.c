@@ -56,6 +56,17 @@ static int echo_back = 0; //
 
 static struct timespec send_interval; // packet send interval for client
 
+static int send_log = 0; 
+static int recv_log = 0;
+static int record_id = 0;
+static FILE *fd_send_record = NULL;
+static FILE *fd_recv_record = NULL;
+static char record_directory[100];
+static char sendRecordFilenamePrefix[] = "dtc_tcp_txrx-send";
+static char sendRecordFilename[100];
+static char recvRecordFilenamePrefix[] = "dtc_tcp_txrx-recv";
+static char recvRecordFilename[100];
+
 // ------ end of argument processing ------
 
 void startServer(void);
@@ -153,10 +164,23 @@ void argumentProcess(int argc, char **argv)
             i++;
             send_interval.tv_sec = 0;
             send_interval.tv_nsec = atol(argv[i]);
-            while (send_interval.tv_nsec > 1E9){
+            while (send_interval.tv_nsec >= 1E9){
                 send_interval.tv_sec++;
                 send_interval.tv_nsec -= 1E9;
             }
+        } else if (strcmp(argv[i], "--record-id") == 0){
+            i++;
+            record_id = atoi(argv[i]);
+        } else if (strcmp(argv[i], "--send-log") == 0){
+            send_log = 1;
+        } else if (strcmp(argv[i], "--recv-log") == 0){
+            recv_log = 1;
+        } else if (strcmp(argv[i], "--record-directory") == 0) {
+            i++;
+            if (argv[i][strlen(argv[i])-1] == '/') 
+                argv[i][strlen(argv[i])-1] = 0;
+            if (snprintf(record_directory, sizeof(record_directory), "%s", argv[i]) < 0) 
+                die ("*** Error\n snprintf in argumentProcess()");
         } else {
             snprintf(debug_string_buffer, sizeof(debug_string_buffer), 
                     "*** Error\n unknown argument: %s", argv[i]);
@@ -200,6 +224,32 @@ void argumentProcess(int argc, char **argv)
         die("*** Error\n server_or_client error in checking");
     }
 
+    // common for client and server
+    if (send_log == 1 || recv_log == 1) {
+        if (strlen(record_directory) == 0){
+            die("*** Error\n If you wanna save data, you must specify the directory as well");
+        }
+    }
+
+    if (send_log == 1) {
+        if (snprintf(sendRecordFilename, sizeof(sendRecordFilename), "%s/%s-%d.csv", 
+                record_directory, sendRecordFilenamePrefix, record_id) < 0)
+            die("*** Error\n snprintf for sendRecordFilename failed");
+        fd_send_record = fopen(sendRecordFilename, "w");
+        if (fd_send_record == NULL) {
+            die("*** Error\n cannot open file for send_record");
+        }
+    }
+    if (recv_log == 1) {
+        if (snprintf(recvRecordFilename, sizeof(recvRecordFilename), "%s/%s-%d.csv",
+                record_directory, recvRecordFilenamePrefix, record_id) < 0)
+            die("*** Error\n snprintf for recvRecordFilename failed");
+        fd_recv_record = fopen(recvRecordFilename, "w");
+        if (fd_recv_record == NULL) {
+            die("*** Error\n cannot open file for recv_record");
+        }
+    }
+
     send_buffer = (char *) malloc(send_buffer_len);
     recv_buffer = (char *) malloc(recv_buffer_len);
     memset(send_buffer, 0, send_buffer_len);
@@ -224,6 +274,7 @@ void argumentProcess(int argc, char **argv)
 
         printf("Echo back: ");
         echo_back == 0 ? printf("Flase\n") : printf("True\n");
+
     } else if (server_or_client == 2){
         printf("Target IP: %s\n", target_ip_str);
         printf("Target Port: %s\n", target_port_str);
@@ -232,6 +283,14 @@ void argumentProcess(int argc, char **argv)
         print_packet == 0 ? printf("False\n") : printf("True\n");
 
         printf("Packet send interval: %ld (s) %ld (ns)\n", send_interval.tv_sec, send_interval.tv_nsec);
+    }
+
+    if (send_log) {
+        printf("Save send log at %s\n", sendRecordFilename);
+    }
+
+    if (recv_log) {
+        printf("Save recv log at %s\n", recvRecordFilename);
     }
     
     printf("------ End of Configuration Info ------\n");
@@ -401,7 +460,7 @@ void startClient(void)
         }
 
         ts_current.tv_nsec += send_interval.tv_nsec;
-        while (ts_current.tv_nsec > 1E9) {
+        while (ts_current.tv_nsec >= 1E9) {
             ts_current.tv_sec++;
             ts_current.tv_nsec -= 1E9;
         }

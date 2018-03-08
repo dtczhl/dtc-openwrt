@@ -1,6 +1,6 @@
 include $(TOPDIR)/rules.mk
 
-# Huanle Zhang
+# Huanle Zhang at UC Davis
 # www.huanlezhang.com
 
 PKG_NAME:=dtc_tcp_txrx
