@@ -66,6 +66,8 @@ static char sendRecordFilenamePrefix[] = "dtc_tcp_txrx-send";
 static char sendRecordFilename[100];
 static char recvRecordFilenamePrefix[] = "dtc_tcp_txrx-recv";
 static char recvRecordFilename[100];
+static struct timespec ts_current_send; // send time log
+static struct timespec ts_current_recv; // recv time log
 
 // ------ end of argument processing ------
 
@@ -368,12 +370,30 @@ void startServer(void)
         packet_read_size = recv(connection_fd, recv_buffer, recv_buffer_len, 0);
         
         if (packet_read_size > 0) {
+           
             packet_recv_count++;
 
+            if (recv_log == 1){
+                if (clock_gettime(CLOCK_MONOTONIC, &ts_current_recv) != 0)
+                    die("*** Error\n clock_gettime for ts_current_recv failed");
+                fprintf(fd_recv_record, "%ld,%ld,%.*s\n", 
+                    ts_current_recv.tv_sec, ts_current_recv.tv_nsec, packet_read_size, recv_buffer);
+            }
+           
             if (echo_back == 1 && 
                     write(connection_fd, recv_buffer, packet_read_size) == -1){
                 die("*** Error\n write in startServer() failed");
             }
+            
+            if (send_log == 1){
+                if (clock_gettime(CLOCK_MONOTONIC, &ts_current_send) != 0)
+                    die("*** Error\n clock_gettime for ts_current_send failed");
+                fprintf(fd_send_record, "%ld,%ld,%.*s\n",
+                    ts_current_send.tv_sec, ts_current_send.tv_nsec, packet_read_size, recv_buffer);
+            }
+
+            if (recv_log == 1) fflush(fd_recv_record);
+            if (send_log == 1) fflush(fd_send_record);
         }
     }
 
@@ -396,14 +416,21 @@ void *client_packet_reception(void *threadid)
 {
     while (1) {
         packet_read_size = recv(server_fd, recv_buffer, recv_buffer_len, 0); 
+        if (packet_read_size <= 0) continue;
+
+        if (recv_log == 1){
+            if (clock_gettime(CLOCK_MONOTONIC, &ts_current_recv) != 0)
+                die("*** Error\n clock_gettime in client_packet_reception failed");
+            fprintf(fd_recv_record, "%ld,%ld,%.*s\n", 
+                ts_current_recv.tv_sec, ts_current_recv.tv_nsec, packet_read_size, recv_buffer);
+            fflush(fd_recv_record);
+        }
         packet_recv_count++;
     }
 }
 
 void startClient(void)
 {
-    struct timespec ts_current;
-    
     // timer related
     struct sigaction sa;
     struct itimerval timer;
@@ -437,7 +464,7 @@ void startClient(void)
 
     if (print_packet == 1) setitimer(ITIMER_REAL, &timer, NULL);
 
-    if (clock_gettime(CLOCK_MONOTONIC, &ts_current) != 0)
+    if (clock_gettime(CLOCK_MONOTONIC, &ts_current_send) != 0)
         die("*** Error\n clock_gettime in startClient() failed");
 
     while (1){
@@ -453,17 +480,25 @@ void startClient(void)
         send_buffer[2] = '0' + (packet_send_count/10) % 10;
         send_buffer[3] = '0' + (packet_send_count) % 10;
 
-        dtc_sleep(&ts_current, &send_interval);
+        dtc_sleep(&ts_current_send, &send_interval);
 
         if (send(server_fd, send_buffer, 4, 0) < 0){
             die("*** Error\n send in startClient() failed");
         }
 
-        ts_current.tv_nsec += send_interval.tv_nsec;
-        while (ts_current.tv_nsec >= 1E9) {
-            ts_current.tv_sec++;
-            ts_current.tv_nsec -= 1E9;
+        if (send_log == 1) {
+            fprintf(fd_send_record, "%ld,%ld,%.*s\n",
+                    ts_current_send.tv_sec, ts_current_send.tv_nsec, packet_read_size, recv_buffer);
         }
+
+        ts_current_send.tv_sec += send_interval.tv_sec;
+        ts_current_send.tv_nsec += send_interval.tv_nsec;
+        while (ts_current_send.tv_nsec >= 1E9) {
+            ts_current_send.tv_sec++;
+            ts_current_send.tv_nsec -= 1E9;
+        }
+        
+        if (send_log == 1) fflush(fd_send_record);
     }
 
     close(server_fd);
