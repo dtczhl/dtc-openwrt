@@ -2,7 +2,7 @@
  * Customized TCP sender and receiver
  *
  * Note:
- * 1) Server only accepts one connection
+ * 1) Server only accepts one connection and then dead
  *
  * Huanle Zhang at UC Davis
  * www.huanlezhang.com
@@ -23,6 +23,7 @@
 #include "dtc_sleep.h"
 
 static const int print_interval = 5; // 5 seconds
+static const int log_packet_length = 4; // only record first 4 bytes
 
 static const int send_buffer_len = 2000;
 static const int recv_buffer_len = 5000;
@@ -32,8 +33,8 @@ static char *recv_buffer;
 static struct sockaddr_in si_target;
 static struct sockaddr_in si_self;
 
-static unsigned long packet_recv_count = 0;
-static unsigned long packet_send_count = 0;
+static unsigned int packet_recv_count = 0;
+static unsigned int packet_send_count = 0;
 
 static char debug_string_buffer[100];
 
@@ -84,7 +85,6 @@ void usage(void)
 {
     printf("Usage: dtc_tcp_txrx [--server|--client] \n");
     printf("        [--target-address ip port] [--self-address ip port]\n");
-    printf("        [--send-file file_path] [--recv-file filename]\n");
     printf("        [--record-directory directory_path] [--record-id id]\n");
     printf("        [--send-log] [--recv-log]\n");
     printf("        [--send-interval nanoseconds]\n");
@@ -93,8 +93,7 @@ void usage(void)
     printf("    --server|--client (required)    TCP server or client\n");
     printf("    --target-address ip port        0.0.0.0 for any ip, 0 for any port\n");
     printf("    --self-address ip port          0.0.0.0 for any ip, 0 for any port\n");
-    printf("    --send-file file_path           point to the file to be send\n");
-    printf("    --recv-file filename            save payload to file\n");
+    printf("    --record-directory path         directory for logging to files\n");
     printf("    --send-log                      log detailed send information\n");
     printf("    --send-interval nanoseconds     packet sending interval\n");
     printf("    --recv-log                      log detailed recv information\n");
@@ -102,12 +101,10 @@ void usage(void)
     printf("    --echo-back                     echo back the received packets\n");
     printf("    --help                          print help information\n");
 
-/*
- * If --client && --send-file is not specified, then put seq number in the first 4 bytes 
- *      of payload. Packet length is set to the buffer length
- *
- *  --echo-back only works on server
- */
+    printf("Server side only:\n");
+    printf("    --echo-back\n");
+    printf("Client side only:\n");
+    printf("    --send-interval\n");
 }
 
 void argumentProcess(int argc, char **argv)
@@ -416,16 +413,17 @@ void *client_packet_reception(void *threadid)
 {
     while (1) {
         packet_read_size = recv(server_fd, recv_buffer, recv_buffer_len, 0); 
-        if (packet_read_size <= 0) continue;
 
-        if (recv_log == 1){
-            if (clock_gettime(CLOCK_MONOTONIC, &ts_current_recv) != 0)
-                die("*** Error\n clock_gettime in client_packet_reception failed");
-            fprintf(fd_recv_record, "%ld,%ld,%.*s\n", 
-                ts_current_recv.tv_sec, ts_current_recv.tv_nsec, packet_read_size, recv_buffer);
-            fflush(fd_recv_record);
+        if (packet_read_size >= log_packet_length) { // or > 0 ?
+            if (recv_log == 1){
+                if (clock_gettime(CLOCK_MONOTONIC, &ts_current_recv) != 0)
+                    die("*** Error\n clock_gettime in client_packet_reception failed");
+                fprintf(fd_recv_record, "%ld,%ld,%.*s\n", 
+                    ts_current_recv.tv_sec, ts_current_recv.tv_nsec, log_packet_length, recv_buffer);
+                fflush(fd_recv_record);
+            }
+            packet_recv_count++;
         }
-        packet_recv_count++;
     }
 }
 
@@ -469,26 +467,21 @@ void startClient(void)
 
     while (1){
         packet_send_count++;
-        /*
+        
         send_buffer[0] = (char) (packet_send_count >> 24);
         send_buffer[1] = (char) (packet_send_count >> 16);
         send_buffer[2] = (char) (packet_send_count >> 8);
         send_buffer[3] = (char) (packet_recv_count >> 0);
-        */
-        send_buffer[0] = '0' + (packet_send_count/1000) % 10;
-        send_buffer[1] = '0' + (packet_send_count/100) % 10;
-        send_buffer[2] = '0' + (packet_send_count/10) % 10;
-        send_buffer[3] = '0' + (packet_send_count) % 10;
-
+        
         dtc_sleep(&ts_current_send, &send_interval);
 
-        if (send(server_fd, send_buffer, 4, 0) < 0){
+        if (send(server_fd, send_buffer, send_buffer_len, 0) < 0){
             die("*** Error\n send in startClient() failed");
         }
 
         if (send_log == 1) {
             fprintf(fd_send_record, "%ld,%ld,%.*s\n",
-                    ts_current_send.tv_sec, ts_current_send.tv_nsec, packet_read_size, recv_buffer);
+                    ts_current_send.tv_sec, ts_current_send.tv_nsec, log_packet_length, send_buffer);
         }
 
         ts_current_send.tv_sec += send_interval.tv_sec;
