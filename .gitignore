@@ -3,3 +3,4 @@
 
 # ignore executable files under packages/
 packages/dtc_tcp_txrx/src/dtc_tcp_txrx
+packages/dtc_udp_redundant_txrx/src/dtc_udp_redundant_txrx
