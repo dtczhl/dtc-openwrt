@@ -18,18 +18,24 @@
 #include <sys/select.h>
 #include <pthread.h>
 
+#include "dtc_sleep.h"
+
 static const int print_interval = 5; // in seconds
 static const int log_packet_length = 4; // record first bytes
 
-#define send_buffer_len 2000
-#define recv_buffer_len 5000
-static char send_buffer[send_buffer_len];
-static char recv_buffer[recv_buffer_len];
+#define SEND_BUFFER_LEN 2000
+#define RECV_BUFFER_LEN 5000
+static char send_buffer[SEND_BUFFER_LEN];
+static char recv_buffer[RECV_BUFFER_LEN];
 
 
 #define MAX_SOCKADDR_NUM 10
 static struct sockaddr_in si_target[MAX_SOCKADDR_NUM];
 static struct sockaddr_in si_self[MAX_SOCKADDR_NUM];
+static int serverSock[MAX_SOCKADDR_NUM];
+static int serverSockLen[MAX_SOCKADDR_NUM];
+static int clientSock[MAX_SOCKADDR_NUM];
+static int clientSockLen[MAX_SOCKADDR_NUM];
 
 static unsigned int packet_recv_count = 0;
 static unsigned int packet_send_count = 0;
@@ -170,6 +176,7 @@ void argumentProcess(int argc, char **argv)
     if (server_or_client == 1) {
         // server
         if (num_self_sockaddr <= 0) die ("*** Error\n self for server must be specified");
+        if (num_self_sockaddr > MAX_SOCKADDR_NUM) die ("*** Error\n too many --self-address");
 
         for (int i = 0; i < num_self_sockaddr; i++) {
             if (si_self[i].sin_port == 0){
@@ -180,6 +187,7 @@ void argumentProcess(int argc, char **argv)
     } else if (server_or_client == 2){
         // client
         if (num_target_sockaddr <= 0) die ("*** Error\n target for server must be specified");
+        if (num_target_sockaddr > MAX_SOCKADDR_NUM) die ("*** Error\n too many --target-address");
 
         for (int i = 0; i < num_target_sockaddr; i++) {
             if (si_target[i].sin_addr.s_addr == 0 || si_target[i].sin_port == 0)
@@ -261,12 +269,224 @@ void argumentProcess(int argc, char **argv)
 
         printf ("Packet send interval: %ld (s) %ld (ns)\n", send_interval.tv_sec, send_interval.tv_nsec);
     }
+
+    if (send_log)
+        printf ("Save send log at %s\n", sendRecordFilename);
+
+    if (recv_log)
+        printf ("Save recv log at %s\n", recvRecordFilename);
+
+    printf ("------ End of Configuration Info ------\n");
 }
+
+static int packet_read_size = 0;
+void timer_handler(int signum)
+{
+    if (packet_read_size > 0)
+        printf ("packet #: %u %.*s\n", packet_recv_count, packet_read_size, recv_buffer);
+}
+
 
 int main(int argc, char **argv)
 {
     argumentProcess(argc, argv);
 
-
+    if (server_or_client == 1)
+        startServer();
+    else if (server_or_client == 2)
+        startClient();
+    
     return 0;
+}
+
+static int maxServerFd = 0;
+fd_set serverReadSet; 
+void startServer(void)
+{
+    struct sockaddr_in si_recv;
+    int slen = sizeof (si_recv);
+    struct sigaction sa;
+    struct itimerval timer;
+
+    if (print_packet == 1) {
+        memset (&sa, 0, sizeof(sa));
+        sa.sa_handler = &timer_handler;
+        sigaction (SIGALRM, &sa, NULL);
+        timer.it_value.tv_sec = print_interval;
+        timer.it_value.tv_usec = 0;
+        timer.it_interval.tv_sec = print_interval;
+        timer.it_interval.tv_usec = 0;
+    }
+
+    for (int i = 0; i < num_self_sockaddr; i++) {
+        serverSockLen[i] = sizeof(si_self[i]);
+        if ((serverSock[i] = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
+            die ("*** Error\n cannot create socket for UDP server");
+        if (bind(serverSock[i], (struct sockaddr*) &si_self[i], serverSockLen[i]) < 0)
+            die ("*** Error\n cannot bind UDP server socket");
+    }
+
+    // get max fd for select
+    for (int i = 0; i < num_self_sockaddr; i++)
+        if (serverSock[i] > maxServerFd)
+            maxServerFd = serverSock[i];
+
+    if (print_packet == 1) setitimer (ITIMER_REAL, &timer, NULL);
+
+    printf ("All good. Listening...\n");
+
+    while (1) {
+        FD_ZERO(&serverReadSet);
+        
+        for (int i = 0; i < num_self_sockaddr; i++)
+            FD_SET(serverSock[i], &serverReadSet);
+
+        while (select(maxServerFd+1, &serverReadSet, NULL, NULL, NULL) <= 0);
+
+        for (int i = 0; i < num_self_sockaddr; i++) {
+            if (FD_ISSET(serverSock[i], &serverReadSet)) {
+                if ((packet_read_size = recvfrom(serverSock[i], recv_buffer, sizeof(recv_buffer), 0, (struct sockaddr *) &si_recv, &slen)) == -1) 
+                    die ("*** Error\n recvfrom in server failed");
+
+                if (packet_read_size >= log_packet_length) {
+                    packet_recv_count++;
+
+                    if (recv_log == 1) {
+                        if (clock_gettime(CLOCK_MONOTONIC, &ts_current_recv) != 0)
+                            die ("*** Error\n clock_gettime in server recv failed");
+                        fprintf(fd_recv_record, "%lu,%lu,%u,%.*s\n", 
+                                ts_current_recv.tv_sec, ts_current_recv.tv_nsec, si_recv.sin_addr.s_addr, log_packet_length, recv_buffer);
+                    }
+
+                    if (echo_back == 1) {
+                        if (sendto(serverSock[i], recv_buffer, packet_read_size, 0, 
+                                (struct sockaddr *) &si_recv, slen) == -1)
+                            die ("*** Error\n sendto in server failed");
+                    }
+
+                    if (send_log == 1) {
+                        if (clock_gettime(CLOCK_MONOTONIC, &ts_current_send) != 0)
+                            die ("*** Error\n clock_gettime in server send failed");
+                        fprintf(fd_send_record, "%lu,%lu,%u,%.*s\n",
+                                ts_current_send.tv_sec, ts_current_send.tv_nsec,
+                                si_recv.sin_addr.s_addr, log_packet_length, recv_buffer);
+                    }
+
+                    if (recv_log == 1) fflush (fd_recv_record);
+                    if (send_log == 1) fflush (fd_send_record);
+                }
+            }
+        }
+    }
+
+    // ------ server exit ------
+    if (print_packet == 1) {
+        // cancel timer
+        timer.it_value.tv_sec = 0;
+        timer.it_value.tv_usec = 0;
+        setitimer (ITIMER_REAL, &timer, NULL);
+    }
+
+    for (int i = 0; i < num_self_sockaddr; i++)
+        close (serverSock[i]);
+
+    return;
+}
+
+// ------ client side processing ------
+
+// client packet reception thread
+void *client_packet_reception(void *threadid)
+{
+    struct sockaddr_in si_recv;
+    int slen = sizeof (si_recv);
+
+    printf ("waiting for packets \n");
+    while (1) {
+        packet_read_size = recvfrom (clientSock[0], recv_buffer, RECV_BUFFER_LEN, 0,
+            (struct sockaddr *)&si_recv, &slen);
+
+        if (packet_read_size >= log_packet_length) {
+            packet_recv_count++;
+            
+            if (recv_log == 1) {
+                if (clock_gettime(CLOCK_MONOTONIC, &ts_current_recv)  != 0)
+                    die ("*** Error\n clock_gettime in client recv failed");
+                fprintf (fd_recv_record, "%ld,%ld,%.*s\n",
+                        ts_current_recv.tv_sec, ts_current_recv.tv_nsec, 
+                        log_packet_length, recv_buffer);
+                fflush (fd_recv_record);
+            }
+        }
+    }
+}
+
+void startClient()
+{
+    struct sigaction sa;
+    struct itimerval timer;
+    pthread_t packet_reception_thread;
+    long t;
+
+    if (print_packet == 1) {
+        memset (&sa, 0, sizeof(sa));
+        sa.sa_handler = &timer_handler;
+        sigaction (SIGALRM, &sa, NULL);
+        timer.it_value.tv_sec = print_interval;
+        timer.it_value.tv_usec = 0;
+        timer.it_interval.tv_sec = print_interval;
+        timer.it_interval.tv_usec = 0;
+    }
+
+    // need extension
+    clientSock[0] = socket (AF_INET, SOCK_DGRAM, 0);
+
+    // create thread for packet reception
+    if (pthread_create(&packet_reception_thread, NULL,
+                client_packet_reception, (void*)t) != 0)
+        die ("*** Error\n pthread_create in client failed");
+
+    if (print_packet == 1) setitimer(ITIMER_REAL, &timer, NULL);
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts_current_send) != 0)
+        die ("*** Error\n clock_gettime in client send failed");
+
+    while (1) {
+        packet_send_count++;
+
+        send_buffer[0] = (char) (packet_send_count >> 24);
+        send_buffer[1] = (char) (packet_send_count >> 16);
+        send_buffer[2] = (char) (packet_send_count >> 8);
+        send_buffer[3] = (char) (packet_send_count >> 0);
+
+        dtc_sleep(&ts_current_send, &send_inteval);
+
+        // need extension
+        for (int i = 0; i < num_target_sockaddr; i++) {
+            if (sendto(clientSock[0], send_buffer, SEND_BUFFER_LEN, 0,
+                    (struct sockaddr *)&si_target[i], sizeof(si_target[i])) < 0)
+                die ("*** Error\n send in client failed");
+            
+        }
+
+        if (send_log == 1) {
+            fprintf (fd_send_record, "%ld,%ld,%.*s\n",
+                    ts_current_send.tv_sec, ts_current_send.tv_nsec,
+                    log_packet_length, send_buffer);
+        }
+
+        ts_current_send.tv_sec += send_interval.tv_sec;
+        ts_current_send.tv_nsec += send_interval.tv_nsec;
+        while (ts_current_send.tv_nsec >= 1E9) {
+            ts_current_send.tv_sec++;
+            ts_current_send.tv_nsec -= 1E9;
+        }
+
+        if (send_log == 1) fflush (fd_send_record);
+    }
+    
+    // ------ client exit ------
+    close (serverSock[0]);
+    
+    printf ("Client Exit\n");
 }
