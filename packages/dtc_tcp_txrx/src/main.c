@@ -437,17 +437,11 @@ void startClient(void)
 
     while (1) {
         packet_send_count++;
-        /*
+        
         send_buffer[0] = (char) (packet_send_count >> 24);
         send_buffer[1] = (char) (packet_send_count >> 16);
         send_buffer[2] = (char) (packet_send_count >> 8);
         send_buffer[3] = (char) (packet_send_count >> 0);
-        */
-        
-        send_buffer[0] = (char) ('0' + (packet_send_count/1000 % 10));
-        send_buffer[1] = (char) ('0' + (packet_send_count/100 % 10));
-        send_buffer[2] = (char) ('0' + (packet_send_count/10 % 10));
-        send_buffer[3] = (char) ('0' + (packet_send_count % 10));
 
         dtc_sleep (&ts_send, &send_interval);
 
