@@ -26,8 +26,8 @@
 #define PRINT_PACKET_INTERVAL 5
 // record first bytes
 #define LOG_PACKET_LENGTH 4 
-// send buffer size, also the sent packet length
 
+// send buffer size, also the sent packet length
 #define SEND_BUFFER_SIZE 2000
 // recv buffer size
 #define RECV_BUFFER_SIZE 5000
@@ -60,14 +60,14 @@ static struct timespec send_interval; // packet send interval for client
 static int send_log = 0;    // record send packet info or not
 static int recv_log = 0;    // record recv packet info or not
 static int record_id = 0;   // filename suffix
-static FILE *fd_send_record = NULL;     // file discriptor for send 
-static FILE *fd_recv_record = NULL;     // file discriptor for recv
+static FILE *fd_send_record = NULL;     // file descriptor for send 
+static FILE *fd_recv_record = NULL;     // file descriptor for recv
 static char record_directory[100];      // length of directory path
 static char sendRecordFilenamePrefix[] = "dtc_tcp_txrx-send"; // filename prefix
 static char sendRecordFilename[200];    // final path for send
 static char recvRecordFilenamePrefix[] = "dtc_tcp_txrx-recv"; // filename prefix
 static char recvRecordFilename[200];    // final path for recv
-static struct timespec ts_send; // for interval sending
+static struct timespec ts_send;         // for interval sending
 static struct timespec ts_current_send; // timestamp for sending
 static struct timespec ts_current_recv; // timestamp for receiving
 
@@ -80,8 +80,8 @@ void startClient(void);
 
 void die(const char *s)
 {
-    fprintf(stderr, "%s\n", s);
-    exit(-1);
+    fprintf (stderr, "%s\n", s);
+    exit (-1);
 }
 
 void usage(void)
@@ -100,7 +100,8 @@ printf ("    --record-directory path         directory for logging to files\n");
 printf ("    --send-log                      log detailed send information\n");
 printf ("    --send-interval nanoseconds     packet sending interval\n");
 printf ("    --recv-log                      log detailed recv information\n");
-printf ("    --print-packet                  print packet seq and content every 5 seconds\n");
+printf ("    --print-packet                  print packet seq and content every %d seconds\n",
+                                                    PRINT_PACKET_INTERVAL);
 printf ("    --echo-back                     echo back the received packets\n");
 printf ("    --help                          print help information\n");
 
@@ -187,6 +188,7 @@ void argumentProcess(int argc, char **argv)
        
         if (send_interval.tv_sec == 0 && send_interval.tv_nsec == 0)
             die ("*** Error\n client must specify --send-interval");
+
     } else {
         die ("*** Error\n check server_or_client");
     }
@@ -259,7 +261,7 @@ void argumentProcess(int argc, char **argv)
     if (recv_log) 
         printf ("Save recv log at %s\n", recvRecordFilename);
     
-    printf("------ End of Configuration Info ------\n");
+    printf ("------ End of Configuration Info ------\n");
 }
 
 static int packet_read_size = 0;
