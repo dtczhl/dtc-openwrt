@@ -21,6 +21,7 @@
 #include <pthread.h>
 
 #include "dtc_sleep.h"
+#include "dtc_write_raw_2_text.h"
 
 // in seconds; print packet info in terminal
 #define PRINT_PACKET_INTERVAL 5
@@ -336,9 +337,10 @@ void startServer(void)
                 if (clock_gettime (CLOCK_MONOTONIC, &ts_current_recv) != 0)
                     die ("*** Error\n clock_gettime in server recv failed");
 
-                fprintf (fd_recv_record, "%ld,%ld,%.*s\n", 
-                        ts_current_recv.tv_sec, ts_current_recv.tv_nsec, 
-                        LOG_PACKET_LENGTH, recv_buffer);
+                fprintf (fd_recv_record, "%lu,%lu,", 
+                        ts_current_recv.tv_sec, ts_current_recv.tv_nsec);
+                dtcWriteRaw2Text (fd_recv_record, recv_buffer, LOG_PACKET_LENGTH);
+                fprintf (fd_recv_record, "\n");
             }
            
             if (echo_back == 1) {
@@ -349,9 +351,10 @@ void startServer(void)
                     if (clock_gettime (CLOCK_MONOTONIC, &ts_current_send) != 0)
                         die ("*** Error\n clock_gettime in server send failed");
 
-                    fprintf(fd_send_record, "%ld,%ld,%.*s\n",
-                            ts_current_send.tv_sec, ts_current_send.tv_nsec, 
-                            LOG_PACKET_LENGTH, recv_buffer);
+                    fprintf(fd_send_record, "%lu,%lu,",
+                            ts_current_send.tv_sec, ts_current_send.tv_nsec);
+                    dtcWriteRaw2Text (fd_send_record, recv_buffer, LOG_PACKET_LENGTH);
+                    fprintf (fd_send_record, "\n");
                     fflush (fd_send_record);
                 }
             }        
@@ -389,9 +392,10 @@ void *client_packet_reception(void *threadid)
                 if (clock_gettime (CLOCK_MONOTONIC, &ts_current_recv) != 0)
                     die ("*** Error\n clock_gettime in client recv failed");
 
-                fprintf (fd_recv_record, "%ld,%ld,%.*s\n", 
-                        ts_current_recv.tv_sec, ts_current_recv.tv_nsec, 
-                        LOG_PACKET_LENGTH, recv_buffer);
+                fprintf (fd_recv_record, "%lu,%lu,", 
+                        ts_current_recv.tv_sec, ts_current_recv.tv_nsec);
+                dtcWriteRaw2Text (fd_recv_record, recv_buffer, LOG_PACKET_LENGTH);
+                fprintf (fd_recv_record, "\n");
                 fflush (fd_recv_record);
             }
         }
@@ -453,9 +457,10 @@ void startClient(void)
         if (send_log == 1) {
             if (clock_gettime (CLOCK_MONOTONIC, &ts_current_send) != 0)
                 die ("*** Error\n clock_gettime in client send failed");
-            fprintf (fd_send_record, "%ld,%ld,%.*s\n",
-                     ts_current_send.tv_sec, ts_current_send.tv_nsec, 
-                     LOG_PACKET_LENGTH, send_buffer);
+            fprintf (fd_send_record, "%lu,%lu,",
+                     ts_current_send.tv_sec, ts_current_send.tv_nsec);
+            dtcWriteRaw2Text (fd_send_record, send_buffer, LOG_PACKET_LENGTH);
+            fprintf (fd_send_record, "\n");
         }
 
         ts_send.tv_sec += send_interval.tv_sec;
