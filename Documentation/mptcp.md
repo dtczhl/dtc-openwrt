@@ -71,7 +71,7 @@ If you want to re-create subflows after a timeout (e.g., if the NAT-mapping was 
 * ndiffports. 
 This one will create X subflows across the same pair of IP-addresses, modifying the source-port. To control the number of subflows (X), you can set /sys/module/mptcp_ndiffports/parameters/num_subflows to a value > 1.
 
-* binder
+* binder.
 Using Loose Source Routing from the paper *Binder: a system to aggregate multiple interface internet gateways in community networks*.
 
 ## Scheduler
@@ -87,14 +87,14 @@ At run-time you can select one of the compiled schedulers through the
  	setsockopt(fd, SOL_TCP, MPTCP_SCHEDULER, scheduler, sizeof(scheduler));
 ```
  
- * default
+ * default.
  It will first send data on subflows with the lowest RTT until their congestion-window if full. Then, it will start transmitting on the subflows with the next higher RTT.
  
- * roundrobin
+ * roundrobin.
  Transmitting traffic in a round-robin fashion. It is configurable, how many consecutive segments should be sent with the tunable "num_segments" in the sysfs (default 1). 
  Additionally, you can set the boolean tunable "cwnd_limited" to specify whether the scheduler tries to fill the congestion window on all subflows (true) or whether it prefers to leave open space in the congestion window (false) to achieve real round-robin (even if the subflows have very different capacities) (default to true). 
  
- * redundant
+ * redundant.
  This scheduler will try to transmit the traffic on all available subflows in a redundant way. It is useful when one wants to achieve the lowest possible latency by sacrificing the bandwidth.
 
  
