@@ -10,7 +10,7 @@ Adapted from official mptcp website
 	
 ### Write options
 
-	sysctl net.mptcp.[name of the variable]=[value]
+	sysctl -w net.mptcp.[name of the variable]=[value]
 
 # Options
 

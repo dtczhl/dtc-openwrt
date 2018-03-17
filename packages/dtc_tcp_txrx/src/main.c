@@ -28,8 +28,9 @@
 // record first bytes
 #define LOG_PACKET_LENGTH 4 
 
-// send buffer size, also the sent packet length
-#define SEND_BUFFER_SIZE 2000
+// send buffer size
+#define SEND_BUFFER_SIZE 5000
+static int send_length = 508; // packet send length
 // recv buffer size
 #define RECV_BUFFER_SIZE 5000
 static char send_buffer[SEND_BUFFER_SIZE];
@@ -92,6 +93,7 @@ printf ("        [--target-address ip port] [--self-address ip port]\n");
 printf ("        [--record-directory path] [--record-id id]\n");
 printf ("        [--send-log] [--recv-log]\n");
 printf ("        [--send-interval nanoseconds]\n");
+printf ("        [--send-length length]\n");
 printf ("        [--print-packet] [--echo-back]\n");
 printf ("        [--help]\n");
 printf ("    --server|--client               TCP server or client\n");
@@ -100,6 +102,7 @@ printf ("    --self-address ip port          0.0.0.0 for any ip, 0 for any port\
 printf ("    --record-directory path         directory for logging to files\n");
 printf ("    --send-log                      log detailed send information\n");
 printf ("    --send-interval nanoseconds     packet sending interval\n");
+printf ("    --send-length length            packet length of sending\n");
 printf ("    --recv-log                      log detailed recv information\n");
 printf ("    --print-packet                  print packet seq and content every %d seconds\n",
                                                     PRINT_PACKET_INTERVAL);
@@ -110,6 +113,7 @@ printf ("Server side only:\n");
 printf ("    --echo-back\n");
 printf ("Client side only:\n");
 printf ("    --send-interval\n");
+printf ("    --send-length\n");
 }
 
 void argumentProcess(int argc, char **argv)
@@ -161,6 +165,9 @@ void argumentProcess(int argc, char **argv)
                 argv[i][strlen (argv[i]) - 1] = 0;
             if (snprintf (record_directory, sizeof (record_directory), "%s", argv[i]) < 0) 
                 die ("*** Error\n check --record-directory");
+        } else if (strcmp (argv[i], "--send-length") == 0){
+            i++;
+            send_length = atoi (argv[i]);
         } else {
             snprintf (debug_string_buffer, DEBUG_STRING_BUFFER_SIZE, 
                     "*** Error\n unknown argument: %s", argv[i]);
@@ -190,6 +197,8 @@ void argumentProcess(int argc, char **argv)
         if (send_interval.tv_sec == 0 && send_interval.tv_nsec == 0)
             die ("*** Error\n client must specify --send-interval");
 
+        if (send_length < LOG_PACKET_LENGTH) 
+            die ("*** Error\n send_length < LOG_PACKET_LENGTH");
     } else {
         die ("*** Error\n check server_or_client");
     }
@@ -254,6 +263,8 @@ void argumentProcess(int argc, char **argv)
 
         printf ("Packet send interval: %ld (s) %ld (ns)\n", 
                 send_interval.tv_sec, send_interval.tv_nsec);
+
+        printf ("Packet send length: %d\n", send_length);
     }
 
     if (send_log) 
@@ -451,7 +462,7 @@ void startClient(void)
 
         dtc_sleep (&ts_send, &send_interval);
 
-        if (send (server_fd, send_buffer, SEND_BUFFER_SIZE, 0) < 0)
+        if (send (server_fd, send_buffer, send_length, 0) < 0)
             die("*** Error\n send in client send failed");
 
         if (send_log == 1) {
