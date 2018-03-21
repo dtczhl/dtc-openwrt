@@ -2,6 +2,8 @@
 Adapted from official mptcp website
 [Configure MPTCP](https://multipath-tcp.org/pmwiki.php/Users/ConfigureMPTCP)
 
+MPTCP version: 0.93; based on 4.9.78 Linux kernel
+
 ## Configuration
 
 ### Read options
