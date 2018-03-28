@@ -24,7 +24,14 @@ I copied the command to install the tools for Ubuntu 64bit here
 2. Download OpenWrt system. To be compatible, better download the version that I forked from OpenWrt/LEDE
 
     `git clone https://github.com/dtczhl/openwrt-fork.git .`
-  
+
+3. Update feeds
+
+    ```shell
+    ./scripts/feeds update -a
+    ./scripts/feeds install -a
+    ```
+
 3. Download this repo. Must be placed in the root directory of OpenWrt source
 
     `git clone https://github.com/dtczhl/dtc-openwrt.git`
@@ -41,19 +48,14 @@ I copied the command to install the tools for Ubuntu 64bit here
     
     My packages are installed in package/feeds/	
     
-6. Build as usual way of building OpenWrt, run
+7. Build as usual way of building OpenWrt, run
 
-    `./scripts/feeds update -a`
-    
-    `./scripts/feeds install -a`
-    
     `make menuconfig` 
- 
+
      * My packages are under `DTC` tag
      * Configure and then run
-     	* `make V=s`
-    
-    
+    		* `make V=s`
+
 ## Uninstall
 
 1. Go to the root directory of OpenWrt source, run
@@ -61,15 +63,15 @@ I copied the command to install the tools for Ubuntu 64bit here
     `./dtc-openwrt/main.sh --uninstall`
     
     It rolls back to the official version before my system configuration.
- 
+
  2. Remove my packages, run
- 
- 	`./dtc-openwrt/main.sh --package-remove`
+
+		`./dtc-openwrt/main.sh --package-remove`
     
 ## Package Updating and Removing
 
 1. If you modify my packages, then to update them, run
-    
+  
     `./dtc-openwrt/main.sh --package-update`
     
 2. To remove my packages, run
