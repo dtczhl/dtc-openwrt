@@ -9,14 +9,12 @@ Refer  to [this](https://www.shortcutfoo.com/blog/top-50-vim-configuration-optio
 	set autoindent 
 	# convert tabs to spaces
 	set expandtab
-	# enable indentation rules that are file-type specific
-	set filetype indent on
 	# when shifting lines, round the indentation to the nearest multiple of shiftwidth
 	set shiftround
 	# when shifting, indent using four spaces
 	set shiftwdith=4
 	# insert tabstop number of spaces when the tab key is pressed
-	set smartab
+	set smarttab
 	# indent using four spaces
 	set tabstop=4
 	
@@ -30,12 +28,7 @@ Refer  to [this](https://www.shortcutfoo.com/blog/top-50-vim-configuration-optio
 	# enable syntax highlighting
 	syntax enable
 	
-	# change color scheme
-	set colorscheme wombat256mod
 	# show line numbers on the sidebar
 	set number
 	# set the window title, reflecting the file currently being edited
 	set title
-	
-	# enable spellchecking
-	set spell
