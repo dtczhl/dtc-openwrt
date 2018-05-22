@@ -7,7 +7,7 @@ Index: linux-4.9.82/net/Makefile
  obj-$(CONFIG_NET)		+= $(tmp-y)
  
 +# added by dtc ------
-+obj-y   += ../dtc_debugfs/
++obj-y   += ../../../../../common_folder/dtc_debugfs/
 +
  # LLC has to be linked before the files in net/802/
  obj-$(CONFIG_LLC)		+= llc/
@@ -21,7 +21,7 @@ Index: linux-4.9.82/net/socket.c
  #include <linux/errqueue.h>
  
 +// added by dtc ------
-+#include "../dtc_debugfs/dtc_debugfs.h"
++#include "../../../../../common_folder/dtc_debugfs/dtc_debugfs.h"
 +
  #ifdef CONFIG_NET_RX_BUSY_POLL
  unsigned int sysctl_net_busy_read __read_mostly;
@@ -49,7 +49,7 @@ Index: linux-4.9.82/net/ipv4/ip_output.c
  #include <linux/tcp.h>
  
 +// added by dtc ------
-+#include "../../dtc_debugfs/dtc_debugfs.h"
++#include "../../../../../../common_folder/dtc_debugfs/dtc_debugfs.h"
 +
  static int
  ip_fragment(struct net *net, struct sock *sk, struct sk_buff *skb,
@@ -78,7 +78,7 @@ Index: linux-4.9.82/net/ipv4/udp.c
  #include <net/addrconf.h>
  
 +// added by dtc ------
-+#include "../../dtc_debugfs/dtc_debugfs.h"
++#include "../../../../../../common_folder/dtc_debugfs/dtc_debugfs.h"
 +
  struct udp_table udp_table __read_mostly;
  EXPORT_SYMBOL(udp_table);

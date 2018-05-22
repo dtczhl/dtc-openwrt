@@ -66,7 +66,7 @@ I copied the command to install the tools for Ubuntu 64bit here
 
  2. Remove my packages, run
 
-		`./dtc-openwrt/main.sh --package-remove`
+	`./dtc-openwrt/main.sh --package-remove`
     
 ## Package Updating and Removing
 

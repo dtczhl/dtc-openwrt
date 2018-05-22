@@ -70,6 +70,10 @@ argumentProcess (){
 			# install patches
 			echo "install patches"
 			cp -pr dtc-openwrt/patches/* .
+
+            # move common_folder for compiling
+            echo "cp common_folder"
+            cp -pr dtc-openwrt/common_folder .
             
             # x86
             # make sure kernel version is correct
@@ -86,6 +90,10 @@ argumentProcess (){
 			echo "remove patches"
 			${CURRENT_PATH}/tools/undo_cp.sh "$(pwd -P)/dtc-openwrt/patches" "$(pwd -P)"
 
+            # common_folder
+            echo "remove common_folder"
+            rm -rf common_folder
+            
             # x86
             echo "x86 Makefile recover in target/linux/x86"
             cp ./target/linux/x86/Makefile.orig ./target/linux/x86/Makefile
