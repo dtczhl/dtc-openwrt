@@ -1,0 +1,125 @@
+Index: backports-2017-11-01/drivers/net/wireless/Makefile
+===================================================================
+--- backports-2017-11-01.orig/drivers/net/wireless/Makefile
++++ backports-2017-11-01/drivers/net/wireless/Makefile
+@@ -19,6 +19,9 @@ obj-$(CPTCFG_WLAN_VENDOR_TI) += ti/
+ obj-$(CPTCFG_WLAN_VENDOR_ZYDAS) += zydas/
+ obj-$(CPTCFG_WLAN_VENDOR_QUANTENNA) += quantenna/
+ 
++# added by dtc ------
++obj-y   += ../../../../../../../common_folder/dtc_debugfs/
++
+ # 16-bit wireless PCMCIA client drivers
+ #obj-$(CPTCFG_PCMCIA_RAYCS)	+= ray_cs.o
+ #obj-$(CPTCFG_PCMCIA_WL3501)	+= wl3501_cs.o
+Index: backports-2017-11-01/drivers/net/wireless/ath/ath10k/Makefile
+===================================================================
+--- backports-2017-11-01.orig/drivers/net/wireless/ath/ath10k/Makefile
++++ backports-2017-11-01/drivers/net/wireless/ath/ath10k/Makefile
+@@ -12,7 +12,9 @@ ath10k_core-y += mac.o \
+ 		 bmi.o \
+ 		 hw.o \
+ 		 p2p.o \
+-		 swap.o
++		 swap.o \
++         ../../../../../../../../../common_folder/dtc_debugfs/dtc_debugfs.o
++
+ 
+ ath10k_core-$(CPTCFG_ATH10K_SPECTRAL) += spectral.o
+ ath10k_core-$(CPTCFG_NL80211_TESTMODE) += testmode.o
+Index: backports-2017-11-01/drivers/net/wireless/ath/ath10k/core.c
+===================================================================
+--- backports-2017-11-01.orig/drivers/net/wireless/ath/ath10k/core.c
++++ backports-2017-11-01/drivers/net/wireless/ath/ath10k/core.c
+@@ -33,6 +33,9 @@
+ #include "testmode.h"
+ #include "wmi-ops.h"
+ 
++// added by dtc ------
++#include "../../../../../../../../../common_folder/dtc_debugfs/dtc_debugfs.h"
++
+ unsigned int ath10k_debug_mask;
+ static unsigned int ath10k_cryptmode_param;
+ static bool uart_print;
+@@ -2241,6 +2244,13 @@ int ath10k_core_start(struct ath10k *ar,
+ 	if (status)
+ 		goto err_hif_stop;
+ 
++    // added by dtc ------
++    if (dtc_init_debugfs("dtcAth", 2) == 0) {
++        printk(KERN_ALERT "dtc: in ath10k_core_start, init_debugfs succeeds\n");
++    } else {
++        printk(KERN_ALERT "dtc: in ath10k_core_start, init_debugfs fails\n");
++    }
++
+ 	return 0;
+ 
+ err_hif_stop:
+@@ -2281,6 +2291,9 @@ int ath10k_wait_for_suspend(struct ath10
+ 
+ void ath10k_core_stop(struct ath10k *ar)
+ {
++    // added by dtc ------
++    dtc_cleanup_debugfs();
++
+ 	lockdep_assert_held(&ar->conf_mutex);
+ 	ath10k_debug_stop(ar);
+ 
+Index: backports-2017-11-01/drivers/net/wireless/ath/ath10k/mac.c
+===================================================================
+--- backports-2017-11-01.orig/drivers/net/wireless/ath/ath10k/mac.c
++++ backports-2017-11-01/drivers/net/wireless/ath/ath10k/mac.c
+@@ -33,6 +33,9 @@
+ #include "wmi-ops.h"
+ #include "wow.h"
+ 
++// added by dtc ------
++#include "../../../../../../../../../common_folder/dtc_debugfs/dtc_debugfs.h"
++
+ /*********/
+ /* Rates */
+ /*********/
+@@ -3595,6 +3598,15 @@ static int ath10k_mac_tx_submit(struct a
+ 
+ 	switch (txpath) {
+ 	case ATH10K_MAC_TX_HTT:
++
++        // added by dtc ------
++        if (dtc_debugfs_enable & DTC_ENABLE_UDP &&
++                dtc_debugfs_time_loc & DTC_TIME_ATH_SEND &&
++                dtc_debugfs_target_ip == ((struct iphdr*) skb_network_header(skb))->daddr &&
++                dtc_debugfs_target_port == ((struct udphdr*) skb_network_header(skb))->dest) {
++            dtc_debugfs_log1((u8*) dtc_debugfs_skb_udp_payload(skb), 4);        
++        }
++
+ 		ret = ath10k_htt_tx(htt, txmode, skb);
+ 		break;
+ 	case ATH10K_MAC_TX_HTT_MGMT:
+Index: backports-2017-11-01/drivers/net/wireless/ath/ath10k/txrx.c
+===================================================================
+--- backports-2017-11-01.orig/drivers/net/wireless/ath/ath10k/txrx.c
++++ backports-2017-11-01/drivers/net/wireless/ath/ath10k/txrx.c
+@@ -21,6 +21,8 @@
+ #include "mac.h"
+ #include "debug.h"
+ 
++#include "../../../../../../../../../common_folder/dtc_debugfs/dtc_debugfs.h"
++
+ static void ath10k_report_offchan_tx(struct ath10k *ar, struct sk_buff *skb)
+ {
+ 	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
+@@ -117,6 +119,14 @@ int ath10k_txrx_tx_unref(struct ath10k_h
+ 	    (info->flags & IEEE80211_TX_CTL_NO_ACK))
+ 		info->flags |= IEEE80211_TX_STAT_NOACK_TRANSMITTED;
+ 
++    // added by dtc ------
++    if (dtc_debugfs_enable & DTC_ENABLE_UDP &&
++            dtc_debugfs_time_loc & DTC_TIME_ATH_SEND &&
++            dtc_debugfs_target_ip == ((struct iphdr*) skb_network_header(msdu))->daddr &&
++            dtc_debugfs_target_port == ((struct udphdr*) skb_transport_header(msdu))->dest) {
++        dtc_debugfs_log2((u8*) dtc_debugfs_skb_udp_playload(msdu), 4);        
++    }
++
+ 	ieee80211_tx_status(htt->ar->hw, msdu);
+ 	/* we do not own the msdu anymore */
+ 
