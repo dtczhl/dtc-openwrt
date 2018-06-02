@@ -117,7 +117,7 @@ Index: backports-2017-11-01/drivers/net/wireless/ath/ath10k/txrx.c
 +            dtc_debugfs_time_loc & DTC_TIME_ATH_SEND &&
 +            dtc_debugfs_target_ip == ((struct iphdr*) skb_network_header(msdu))->daddr &&
 +            dtc_debugfs_target_port == ((struct udphdr*) skb_transport_header(msdu))->dest) {
-+        dtc_debugfs_log2((u8*) dtc_debugfs_skb_udp_playload(msdu), 4);        
++        dtc_debugfs_log2((u8*) dtc_debugfs_skb_udp_payload(msdu), 4);        
 +    }
 +
  	ieee80211_tx_status(htt->ar->hw, msdu);
