@@ -17,6 +17,7 @@
 #include <time.h>
 #include <sys/select.h>
 #include <pthread.h>
+#include <errno.h>
 
 #include "dtc_sleep.h"
 #include "dtc_write_raw_2_text.h"
@@ -63,6 +64,7 @@ static int print_packet = 0;    // print packet or not
 static int echo_back = 0;       // echo back or not
 
 static struct timespec send_interval; // packet send interval for client
+static int send_fatest = 0;          // higher priority over send_interval
 
 static int send_log = 0;    // record send packet info or not
 static int recv_log = 0;    // record recv packet info or not
@@ -97,13 +99,16 @@ printf ("        [--record-directory path] [--record-id id]\n");
 printf ("        [--send-log] [--recv-log]\n");
 printf ("        [--send-interval nanoseconds]\n");
 printf ("        [--print-packet] [--echo-back]\n");
+printf ("        [--send-fatest]\n");
 printf ("        [--help]\n");
 printf ("    --server|--client              UDP server or client\n");
 printf ("    --target-address ip port       0.0.0.0 for any ip, 0 for any port\n");
 printf ("    --self-address ip port         0.0.0.0 for any ip, 0 for any port\n");
 printf ("    --record-directory path        directory fo logging to files\n");
+printf ("    --record-id id                 record file id\n");
 printf ("    --send-log                     log detailed send information\n");
 printf ("    --send-interval nanoseconds    packet send interval\n");
+printf ("    --send-fatest                  send packets as fast as possible\n");
 printf ("    --recv-log                     log detailed recv information\n");
 printf ("    --print-packet                 print packet seq and content every %d seconds\n", 
                                                     PRINT_PACKET_INTERVAL);
@@ -156,6 +161,8 @@ void argumentProcess(int argc, char **argv)
                 send_interval.tv_sec++;
                 send_interval.tv_nsec -= 1E9;
             }
+        } else if (strcmp (argv[i], "--send-fatest") == 0) {
+            send_fatest = 1;
         } else if (strcmp (argv[i], "--record-id") == 0) {
             i++;
             record_id = atoi (argv[i]);
@@ -208,8 +215,8 @@ void argumentProcess(int argc, char **argv)
             si_target[i].sin_family = AF_INET;
         }
 
-        if (send_interval.tv_sec == 0 && send_interval.tv_nsec == 0)
-            die ("*** Error\n client must specify --send-interval");
+        if (!send_fatest && send_interval.tv_sec == 0 && send_interval.tv_nsec == 0)
+            die ("*** Error\n client must specify --send-interval or --send-fatest");
 
     } else {
         die ("*** Error\n check server_or_client");
@@ -376,10 +383,11 @@ void startServer(void)
                     }
 
                     if (echo_back == 1) {
-                        if (sendto (serverSock[i], recv_buffer, packet_read_size, 0, 
-                                (struct sockaddr *) &si_recv, slen) == -1)
-                            die ("*** Error\n sendto in server failed");
-
+                        while (sendto (serverSock[i], recv_buffer, packet_read_size, 0, 
+                                (struct sockaddr *) &si_recv, slen) == -1) {
+                            printf ("sendto in server errno: %d\n", errno);
+                            // die ("*** Error\n sendto in server failed");
+                        }
                         if (send_log == 1) {
                             if (clock_gettime (CLOCK_MONOTONIC, &ts_current_send) != 0)
                                 die ("*** Error\n clock_gettime in server send failed");
@@ -487,13 +495,16 @@ void startClient()
         send_buffer[2] = (char) (packet_send_count >> 8);
         send_buffer[3] = (char) (packet_send_count >> 0);
 
-        dtc_sleep (&ts_send, &send_interval);
+        if (!send_fatest)
+            dtc_sleep (&ts_send, &send_interval);
 
         // need extension
         for (int i = 0; i < num_target_sockaddr; i++) {
-            if (sendto (clientSock[0], send_buffer, SEND_BUFFER_SIZE, 0,
-                    (struct sockaddr *) &si_target[i], serverSockaddrLen[i]) < 0)
-                die ("*** Error\n send in client failed");
+            while( sendto (clientSock[0], send_buffer, SEND_BUFFER_SIZE, 0,
+                    (struct sockaddr *) &si_target[i], serverSockaddrLen[i]) < 0) {
+                printf ("send in client failed: errno: %d\n", errno);
+                //die ("*** Error\n send in client failed");
+            }
             if (send_log == 1) {
                 if (clock_gettime (CLOCK_MONOTONIC, &ts_current_send) != 0)
                     die ("*** Error\n clock_gettime in client recv failed");
