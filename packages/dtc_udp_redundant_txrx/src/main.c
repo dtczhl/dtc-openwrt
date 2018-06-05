@@ -283,9 +283,11 @@ void argumentProcess(int argc, char **argv)
         }
         
         if (num_self_sockaddr != 0) {
-            printf ("Self bind ports: ");
+            printf ("Self IP:port: ");
             for (int i = 0; i < num_self_sockaddr; i++) {
-                printf ("%u ", ntohs(si_self[i].sin_port));
+                inet_ntop (AF_INET, &si_self[i].sin_addr.s_addr,
+                    debug_string_buffer, sizeof(debug_string_buffer));
+                printf ("%s:%u ", debug_string_buffer, ntohs(si_self[i].sin_port));
             }
             printf ("\n");
         }
@@ -376,6 +378,13 @@ void startServer(void)
                                 recv_buffer, RECV_BUFFER_SIZE, 0, 
                                 (struct sockaddr *) &si_recv, &slen)) == -1) 
                     die ("*** Error\n recvfrom in server failed");
+                
+                /*
+                inet_ntop (AF_INET, &si_recv.sin_addr.s_addr,
+                    debug_string_buffer, sizeof(debug_string_buffer));
+
+                printf ("data from %s:%u \n", debug_string_buffer, ntohs(si_recv.sin_port));
+                */
 
                 if (packet_read_size >= LOG_PACKET_LENGTH) {
                     packet_recv_count++;
