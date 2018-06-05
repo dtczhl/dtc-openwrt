@@ -1,17 +1,19 @@
 #!/bin/bash
 
+
+# (to be improved)
+# 
 # Huanle Zhang
 # www.huanlezhang.com
 
 recordId=0
 savePath=/dtc
 
-senderIp=192.172.1.x
-senderPort=50000
-receiverIp=192.172.1.1
-receiverPort=50000
+serverIp=192.172.1.1
+serverPort=50000
 
-selfPort=50000
+clientIp=192.172.1.136
+clientPort=50000
 
 debugfsPath=/sys/kernel/debug
 dtcSockDir=${debugfsPath}/dtcSock
@@ -59,13 +61,16 @@ readId
 while getopts ":rls" opt; do
 	case $opt in
 	r) # run
+        dtcKillProgram dtc_udp_redundant_txrx
+        sleep 2 # wait for server
 		date > $savePath/ReadMe$recordId 
-		myRunCmd="dtcDebugfsController -s uima -r u -i $receiverIp -p $receiverPort -c enable"
+		myRunCmd="dtcDebugfsController -s uima -r u -i $serverIp -p $serverPort -c enable"
 		echo $myRunCmd >> $savePath/ReadMe$recordId 
 		eval $myRunCmd
 
         dtc_udp_redundant_txrx --client \
-            --target-address $receiverIp $receiverPort \
+            --target-address $serverIp $serverPort \
+            --self-address $clientIp $clientPort \
             --send-fatest \
             --record-directory $savePath --record-id $recordId \
             --send-log --recv-log \
@@ -74,16 +79,17 @@ while getopts ":rls" opt; do
 		echo "Running..."
 		;;
 	l) # listen only
+        dtcKillProgram dtc_udp_txrx --server
 		date > $savePath/ReadMe$recordId 
 
         dtc_udp_redundant_txrx --server \
-            --self-address $receiverIp $receiverPort \
+            --self-address $serverIp $serverPort \
             --record-directory $savePath --record-id $recordId \
             --send-log --recv-log \
             --echo-back \
             --print-packet 
 
-		myListenCmd="dtcDebugfsController -s uima -r u -i $senderIp -p $senderPort -c enable"
+		myListenCmd="dtcDebugfsController -s uima -r u -i $clientIp -p $clientPort -c enable"
 		echo $myListenCmd >> $savePath/ReadMe$recordId 
 		eval $myListenCmd 
 		echo "Listening..."
