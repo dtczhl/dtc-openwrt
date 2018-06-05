@@ -281,6 +281,14 @@ void argumentProcess(int argc, char **argv)
             printf ("Target IP: %s\n", debug_string_buffer);
             printf ("Target Port: %u\n", ntohs (si_target[i].sin_port));
         }
+        
+        if (num_self_sockaddr != 0) {
+            printf ("Self bind ports: ");
+            for (int i = 0; i < num_self_sockaddr; i++) {
+                printf ("%u ", ntohs(si_self[i].sin_port));
+            }
+            printf ("\n");
+        }
 
         printf ("Print packet: ");
         print_packet == 0 ? printf ("False\n") : printf ("True\n");
@@ -472,6 +480,11 @@ void startClient()
     clientSock[0] = socket (AF_INET, SOCK_DGRAM, 0);
     if (clientSock[0] == -1)
         die ("*** Error\n cannot create socket in client");
+    if (num_self_sockaddr != 0) {
+        if (bind (clientSock[0], (struct sockaddr*) &si_self[0], 
+                sizeof(si_self[0])) < 0)
+            die ("*** Error\n client cannot bind socket\n");
+    }
 
     // create thread for packet reception
     if (pthread_create (&packet_reception_thread, NULL,
