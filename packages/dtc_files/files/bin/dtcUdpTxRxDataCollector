@@ -64,7 +64,7 @@ while getopts ":rls" opt; do
         dtcKillProgram dtc_udp_redundant_txrx
         sleep 2 # wait for server
 		date > $savePath/ReadMe$recordId 
-		myRunCmd="dtcDebugfsController -s uima -r u -i $serverIp -p $serverPort -c enable"
+		myRunCmd="dtcDebugfsController -s uma -r u -i $serverIp -p $serverPort -c enable"
 		echo $myRunCmd >> $savePath/ReadMe$recordId 
 		eval $myRunCmd
 
@@ -73,8 +73,7 @@ while getopts ":rls" opt; do
             --self-address 0.0.0.0 $clientPort \
             --send-fatest \
             --record-directory $savePath --record-id $recordId \
-            --send-log --recv-log \
-            --print-packet
+            --send-log --recv-log 
 
 		echo "Running..."
 		;;
@@ -86,10 +85,9 @@ while getopts ":rls" opt; do
             --self-address $serverIp $serverPort \
             --record-directory $savePath --record-id $recordId \
             --send-log --recv-log \
-            --echo-back \
-            --print-packet 
+            --echo-back 
 
-		myListenCmd="dtcDebugfsController -s uima -r u -i $clientIp -p $clientPort -c enable"
+		myListenCmd="dtcDebugfsController -s uma -r u -i $clientIp -p $clientPort -c enable"
 		echo $myListenCmd >> $savePath/ReadMe$recordId 
 		eval $myListenCmd 
 		echo "Listening..."
