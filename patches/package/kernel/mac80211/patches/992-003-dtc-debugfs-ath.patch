@@ -55,15 +55,24 @@ Index: backports-2017-11-01/drivers/net/wireless/ath/ath10k/core.c
  	return 0;
  
  err_hif_stop:
-@@ -2281,6 +2291,9 @@ int ath10k_wait_for_suspend(struct ath10
+@@ -2281,7 +2291,7 @@ int ath10k_wait_for_suspend(struct ath10
  
  void ath10k_core_stop(struct ath10k *ar)
  {
+-	lockdep_assert_held(&ar->conf_mutex);
++  	lockdep_assert_held(&ar->conf_mutex);
+ 	ath10k_debug_stop(ar);
+ 
+ 	/* try to suspend target */
+@@ -2293,6 +2303,9 @@ void ath10k_core_stop(struct ath10k *ar)
+ 	ath10k_htt_tx_stop(&ar->htt);
+ 	ath10k_htt_rx_free(&ar->htt);
+ 	ath10k_wmi_detach(ar);
++ 
 +    // added by dtc ------
 +    dtc_cleanup_debugfs();
-+
- 	lockdep_assert_held(&ar->conf_mutex);
- 	ath10k_debug_stop(ar);
+ }
+ EXPORT_SYMBOL(ath10k_core_stop);
  
 Index: backports-2017-11-01/drivers/net/wireless/ath/ath10k/mac.c
 ===================================================================
@@ -88,7 +97,7 @@ Index: backports-2017-11-01/drivers/net/wireless/ath/ath10k/mac.c
 +        if (dtc_debugfs_enable & DTC_ENABLE_UDP &&
 +                dtc_debugfs_time_loc & DTC_TIME_ATH_SEND &&
 +                dtc_debugfs_target_ip == ((struct iphdr*) skb_network_header(skb))->daddr &&
-+                dtc_debugfs_target_port == ((struct udphdr*) skb_network_header(skb))->dest) {
++                dtc_debugfs_target_port == ((struct udphdr*) skb_transport_header(skb))->dest) {
 +            dtc_debugfs_log1((u8*) dtc_debugfs_skb_udp_payload(skb), 4);        
 +        }
 +
