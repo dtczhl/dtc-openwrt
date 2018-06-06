@@ -70,7 +70,7 @@ while getopts ":rls" opt; do
 
         dtc_udp_redundant_txrx --client \
             --target-address $serverIp $serverPort \
-            --self-address $clientIp $clientPort \
+            --self-address 0.0.0.0 $clientPort \
             --send-fatest \
             --record-directory $savePath --record-id $recordId \
             --send-log --recv-log \
@@ -79,7 +79,7 @@ while getopts ":rls" opt; do
 		echo "Running..."
 		;;
 	l) # listen only
-        dtcKillProgram dtc_udp_txrx --server
+        dtcKillProgram dtc_udp_redundant_txrx 
 		date > $savePath/ReadMe$recordId 
 
         dtc_udp_redundant_txrx --server \
