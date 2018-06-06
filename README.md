@@ -54,7 +54,7 @@ I copied the command to install the tools for Ubuntu 64bit here
 
      * My packages are under `DTC` tag
      * Configure and then run
-    		* `make V=s`
+    		`make V=s`
 
 ## Uninstall
 
