@@ -77,7 +77,7 @@ dataProcess (){
         
         awk -F "," '
             {
-                printf "%d,", (1000000*$1+$2);
+                printf "%d,", (1000000000*$1+$2);
                 
                 split($3, arr, "-");
                 num=(255**3)*arr[1]+(255**2)*arr[2]+(255**1)*arr[3]+(255**0)*arr[4];
@@ -88,7 +88,7 @@ dataProcess (){
     "t1,t2,ip,num")
         awk -F "," '
             {
-                printf "%d,", (1000000*$1+$2);
+                printf "%d,", (1000000000*$1+$2);
 
                 ip_4 = rshift($3, 0) % 256; ip_3 = rshift($3, 8) % 256; 
                 ip_2 = rshift($3, 16) % 256; ip_1 = rshift($3, 24) % 256;
@@ -103,7 +103,7 @@ dataProcess (){
     "t1,t2,raw,num")
          awk -F "," '
             {
-                printf "%d,", (1000000*$1+$2);
+                printf "%d,", (1000000000*$1+$2);
                 
                 printf "%s,", $3
 
