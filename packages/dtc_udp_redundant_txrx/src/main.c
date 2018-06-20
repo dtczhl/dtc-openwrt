@@ -27,12 +27,14 @@
 // record first bytes
 #define LOG_PACKET_LENGTH 4
 
-// send buffer size, also the sent packet length
-#define SEND_BUFFER_SIZE 2000
+// send buffer size
+#define SEND_BUFFER_SIZE 5000
+static int send_length = 2000;   // packet send length
 // recv buffer size
 #define RECV_BUFFER_SIZE 5000
 static char send_buffer[SEND_BUFFER_SIZE];
 static char recv_buffer[RECV_BUFFER_SIZE];
+static int queue_size = 0;
 
 #define MAX_SOCKADDR_NUM 10
 static struct sockaddr_in si_target[MAX_SOCKADDR_NUM];
@@ -97,7 +99,8 @@ printf ("Usage: dtc_udp_redundant_txrx [--server|--client]\n");
 printf ("        [--target-address ip port] [--self-address ip port]\n");
 printf ("        [--record-directory path] [--record-id id]\n");
 printf ("        [--send-log] [--recv-log]\n");
-printf ("        [--send-interval nanoseconds]\n");
+printf ("        [--send-interval nanoseconds] [--send-length length]\n");
+printf ("        [--queue-size size]\n");
 printf ("        [--print-packet] [--echo-back]\n");
 printf ("        [--send-fatest]\n");
 printf ("        [--help]\n");
@@ -108,7 +111,9 @@ printf ("    --record-directory path        directory fo logging to files\n");
 printf ("    --record-id id                 record file id\n");
 printf ("    --send-log                     log detailed send information\n");
 printf ("    --send-interval nanoseconds    packet send interval\n");
+printf ("    --send-length length           packet length of sending\n");
 printf ("    --send-fatest                  send packets as fast as possible\n");
+printf ("    --queue-size                   send and recv queue size\n");
 printf ("    --recv-log                     log detailed recv information\n");
 printf ("    --print-packet                 print packet seq and content every %d seconds\n", 
                                                     PRINT_PACKET_INTERVAL);
@@ -119,6 +124,7 @@ printf ("Server side only:\n");
 printf ("    --echo-back\n");
 printf ("Client side only:\n");
 printf ("    --send-interval\n");
+printf ("    --send-length\n");
 }
 
 void argumentProcess(int argc, char **argv)
@@ -161,6 +167,12 @@ void argumentProcess(int argc, char **argv)
                 send_interval.tv_sec++;
                 send_interval.tv_nsec -= 1E9;
             }
+        } else if (strcmp (argv[i], "--send-length") == 0) {
+            i++;
+            send_length = atoi (argv[i]);
+        } else if (strcmp (argv[i], "--queue-size") == 0) {
+            i++;
+            queue_size = atoi (argv[i]);
         } else if (strcmp (argv[i], "--send-fatest") == 0) {
             send_fatest = 1;
         } else if (strcmp (argv[i], "--record-id") == 0) {
@@ -217,6 +229,9 @@ void argumentProcess(int argc, char **argv)
 
         if (!send_fatest && send_interval.tv_sec == 0 && send_interval.tv_nsec == 0)
             die ("*** Error\n client must specify --send-interval or --send-fatest");
+
+        if (send_length < LOG_PACKET_LENGTH)
+            die ("*** Error\n send_length < LOG_PACKET_LENGTH");
 
     } else {
         die ("*** Error\n check server_or_client");
@@ -297,6 +312,12 @@ void argumentProcess(int argc, char **argv)
 
         printf ("Packet send interval: %ld (s) %ld (ns)\n", 
                 send_interval.tv_sec, send_interval.tv_nsec);
+
+        printf ("Packet send length: %d\n", send_length);
+    }
+
+    if (queue_size != 0) {
+        printf ("Queue size: %d\n", queue_size);
     }
 
     if (send_log)
@@ -353,6 +374,16 @@ void startServer(void)
             die ("*** Error\n cannot create socket for server");
         if (bind (serverSock[i], (struct sockaddr*) &si_self[i], serverSockaddrLen[i]) < 0)
             die ("*** Error\n cannot bind UDP server socket");
+    
+        if (queue_size != 0) {
+            if (setsockopt(serverSock[i], SOL_SOCKET, SO_SNDBUF, 
+                    &queue_size, sizeof(queue_size)) < 0)
+                die ("*** Error\n client setsockopt SO_SNDBUF");
+            if (setsockopt(serverSock[i], SOL_SOCKET, SO_RCVBUF,
+                    &queue_size, sizeof(queue_size)) < 0)
+                die ("*** Error\n client setsockopt SO_RCVBUF");
+        }
+
     }
 
     // get max fd for select
@@ -379,7 +410,7 @@ void startServer(void)
                                 (struct sockaddr *) &si_recv, &slen)) == -1) 
                     die ("*** Error\n recvfrom in server failed");
                 
-                /*
+                /* 
                 inet_ntop (AF_INET, &si_recv.sin_addr.s_addr,
                     debug_string_buffer, sizeof(debug_string_buffer));
 
@@ -468,7 +499,7 @@ void *client_packet_reception(void *threadid)
     }
 }
 
-void startClient()
+void startClient(void)
 {
     struct sigaction sa;
     struct itimerval timer;
@@ -493,6 +524,14 @@ void startClient()
         if (bind (clientSock[0], (struct sockaddr*) &si_self[0], 
                 sizeof(si_self[0])) < 0)
             die ("*** Error\n client cannot bind socket\n");
+    }
+    if (queue_size != 0) {
+        if (setsockopt(clientSock[0], SOL_SOCKET, SO_SNDBUF, 
+                &queue_size, sizeof(queue_size)) < 0)
+            die ("*** Error\n client setsockopt SO_SNDBUF");
+        if (setsockopt(clientSock[0], SOL_SOCKET, SO_RCVBUF,
+                &queue_size, sizeof(queue_size)) < 0)
+            die ("*** Error\n client setsockopt SO_RCVBUF");
     }
 
     // create thread for packet reception
@@ -522,7 +561,7 @@ void startClient()
 
         // need extension
         for (int i = 0; i < num_target_sockaddr; i++) {
-            while( sendto (clientSock[0], send_buffer, SEND_BUFFER_SIZE, 0,
+            while( sendto (clientSock[0], send_buffer, send_length, 0,
                     (struct sockaddr *) &si_target[i], serverSockaddrLen[i]) < 0) {
                 printf ("send in client failed: errno: %d\n", errno);
                 //die ("*** Error\n send in client failed");
