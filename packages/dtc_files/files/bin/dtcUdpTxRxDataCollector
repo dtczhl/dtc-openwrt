@@ -12,8 +12,11 @@ savePath=/dtc
 serverIp=192.172.1.1
 serverPort=50000
 
-clientIp=192.172.1.136
+clientIp=192.172.1.192
 clientPort=50000
+
+queueSize=100000
+sendLength=2000
 
 debugfsPath=/sys/kernel/debug
 dtcSockDir=${debugfsPath}/dtcSock
@@ -72,6 +75,8 @@ while getopts ":rls" opt; do
             --target-address $serverIp $serverPort \
             --self-address 0.0.0.0 $clientPort \
             --send-fatest \
+            --queue-size $queueSize \
+            --send-length $sendLength \
             --record-directory $savePath --record-id $recordId \
             --send-log --recv-log 
 
@@ -84,6 +89,7 @@ while getopts ":rls" opt; do
         dtc_udp_redundant_txrx --server \
             --self-address $serverIp $serverPort \
             --record-directory $savePath --record-id $recordId \
+            --queue-size $queueSize \
             --send-log --recv-log \
             --echo-back 
 

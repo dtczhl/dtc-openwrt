@@ -18,6 +18,7 @@
 #include <sys/select.h>
 #include <pthread.h>
 #include <errno.h>
+#include <linux/ip.h>
 
 #include "dtc_sleep.h"
 #include "dtc_write_raw_2_text.h"
@@ -357,6 +358,7 @@ void startServer(void)
     int slen = sizeof (si_recv);
     struct sigaction sa;
     struct itimerval timer;
+    int ip_tos = IPTOS_LOWDELAY;
 
     if (print_packet == 1) {
         memset (&sa, 0, sizeof(sa));
@@ -372,6 +374,10 @@ void startServer(void)
         serverSockaddrLen[i] = sizeof (si_self[i]);
         if ((serverSock[i] = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
             die ("*** Error\n cannot create socket for server");
+        
+        if (setsockopt(serverSock[i], IPPROTO_IP, IP_TOS, &ip_tos, sizeof(ip_tos)) < 0)
+            die ("*** Error\n server setsockopt IP_TOS");
+
         if (bind (serverSock[i], (struct sockaddr*) &si_self[i], serverSockaddrLen[i]) < 0)
             die ("*** Error\n cannot bind UDP server socket");
     
@@ -505,6 +511,7 @@ void startClient(void)
     struct itimerval timer;
     pthread_t packet_reception_thread;
     long t;
+    int ip_tos = IPTOS_LOWDELAY;
 
     if (print_packet == 1) {
         memset (&sa, 0, sizeof(sa));
@@ -520,11 +527,16 @@ void startClient(void)
     clientSock[0] = socket (AF_INET, SOCK_DGRAM, 0);
     if (clientSock[0] == -1)
         die ("*** Error\n cannot create socket in client");
+
+    if (setsockopt(clientSock[0], IPPROTO_IP, IP_TOS, &ip_tos, sizeof(ip_tos)) < 0)
+        die ("*** Error\n client setsockopt IP_TOS failed");
+
     if (num_self_sockaddr != 0) {
         if (bind (clientSock[0], (struct sockaddr*) &si_self[0], 
                 sizeof(si_self[0])) < 0)
             die ("*** Error\n client cannot bind socket\n");
     }
+
     if (queue_size != 0) {
         if (setsockopt(clientSock[0], SOL_SOCKET, SO_SNDBUF, 
                 &queue_size, sizeof(queue_size)) < 0)
