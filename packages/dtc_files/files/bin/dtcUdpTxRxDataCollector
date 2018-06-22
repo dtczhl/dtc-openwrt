@@ -68,7 +68,7 @@ while getopts ":rls" opt; do
         sleep 2 # wait for server
 		date > $savePath/ReadMe$recordId 
 		myRunCmd="dtcDebugfsController -s uma -i $serverIp -p $serverPort -c enable"
-		echo $myRunCmd >> $savePath/ReadMe$recordId 
+		# echo $myRunCmd >> $savePath/ReadMe$recordId 
 		eval $myRunCmd
 
         dtc_udp_redundant_txrx --client \
@@ -94,7 +94,7 @@ while getopts ":rls" opt; do
             --echo-back 
 
 		myListenCmd="dtcDebugfsController -i $clientIp -p $clientPort -c enable"
-		echo $myListenCmd >> $savePath/ReadMe$recordId 
+		# echo $myListenCmd >> $savePath/ReadMe$recordId 
 		eval $myListenCmd 
 		echo "Listening..."
 		;;

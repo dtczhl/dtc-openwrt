@@ -1,0 +1,53 @@
+#!/bin/bash
+
+
+sleepTime=300
+
+sendLength=2000
+
+queueSize=2048
+
+# get filename of this script
+MY_FILENAME="$(basename "$0")"
+
+usage (){
+cat <<EOF
+$MY_FILENAME
+    --client
+    --server
+EOF
+}
+
+argumentProcess (){
+    
+    if [ $# -eq 0 ]; then
+        # show help info
+        usage
+        exit
+    fi
+
+    key="$1"
+    case $key in
+    --server) # server
+        queueSize=2000
+        for i in {1..7}; do
+            echo $queueSize 
+            queueSize=$(( $queueSize * 10 ))
+        done 
+        ;;
+    --client) # client
+        queueSize=2000
+        for i in {1..7}; do
+            echo $queueSize 
+            queueSize=$(( $queueSize * 10 ))
+        done 
+        ;;
+    *) 
+        echo "Unknow argument $key"
+        exit
+        ;;
+    esac
+
+}
+
+argumentProcess $@
