@@ -99,7 +99,7 @@ while getopts ":rls" opt; do
 		echo "Listening..."
 		;;
 	s) # stop and save data
-		dtcDebugfsController.sh -c disable
+		dtcDebugfsController -c disable
 		date >> $savePath/ReadMe$recordId 
 		ps | grep dtc_udp_redundant_txrx | grep -v grep | awk '{print $1}' | xargs -r kill -9
 		# modify to your needs

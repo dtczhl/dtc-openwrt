@@ -5,7 +5,7 @@ sleepTime=300
 
 sendLength=2000
 
-queueSize=2048
+queueSizeList=(1024 1854 3354 6068 10978 19864 35940 65034 117678 212992)
 
 # get filename of this script
 MY_FILENAME="$(basename "$0")"
@@ -29,17 +29,19 @@ argumentProcess (){
     key="$1"
     case $key in
     --server) # server
-        queueSize=2000
-        for i in {1..7}; do
-            echo $queueSize 
-            queueSize=$(( $queueSize * 10 ))
-        done 
+        queueSize=${queueSizeList[-1]}
+        echo $queueSize 
+        sed -i -e "s/queueSize=.*/queueSize=${queueSize}/" /bin/dtcUdpTxRxDataCollector
+        dtcUdpTxRxDataCollector -l &
         ;;
     --client) # client
-        queueSize=2000
-        for i in {1..7}; do
+        for i in ${queueSizeList[*]}; do
+            queueSize=$i
             echo $queueSize 
-            queueSize=$(( $queueSize * 10 ))
+            sed -i -e "s/queueSize=.*/queueSize=${queueSize}/" /bin/dtcUdpTxRxDataCollector
+            dtcUdpTxRxDataCollector -r &
+            sleep 300
+            dtcUdpTxRxDataCollector -s
         done 
         ;;
     *) 
