@@ -15,8 +15,7 @@ serverPort=50000
 clientIp=192.172.1.192
 clientPort=50000
 
-queueSize=100000
-sendLength=2000
+sendLength=1800
 
 debugfsPath=/sys/kernel/debug
 dtcSockDir=${debugfsPath}/dtcSock
@@ -75,10 +74,10 @@ while getopts ":rls" opt; do
             --target-address $serverIp $serverPort \
             --self-address 0.0.0.0 $clientPort \
             --send-fatest \
-            --queue-size $queueSize \
             --send-length $sendLength \
             --record-directory $savePath --record-id $recordId \
-            --send-log --recv-log 
+            --send-log --recv-log \
+            --print-packet
 
 		echo "Running..."
 		;;
@@ -91,6 +90,7 @@ while getopts ":rls" opt; do
             --record-directory $savePath --record-id $recordId \
             --queue-size $queueSize \
             --send-log --recv-log \
+            --print-packet \
             --echo-back 
 
 		myListenCmd="dtcDebugfsController -i $clientIp -p $clientPort -c enable"

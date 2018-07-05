@@ -45,8 +45,8 @@ static int serverSockaddrLen[MAX_SOCKADDR_NUM];
 static int clientSock[MAX_SOCKADDR_NUM];
 static int clientSockaddrLen[MAX_SOCKADDR_NUM];
 
-static unsigned int packet_recv_count = 0;
-static unsigned int packet_send_count = 0;
+static unsigned long packet_recv_count = 0;
+static unsigned long packet_send_count = 0;
 
 #define DEBUG_STRING_BUFFER_SIZE 100
 static char debug_string_buffer[DEBUG_STRING_BUFFER_SIZE];
@@ -334,7 +334,7 @@ static int packet_read_size = 0;
 void timer_handler(int signum)
 {
     if (packet_read_size >= LOG_PACKET_LENGTH)
-        printf ("packet #: %u %.*s\n", 
+        printf ("packet #: %lu %.*s\n", 
                 packet_recv_count, packet_read_size, recv_buffer);
 }
 
@@ -358,7 +358,7 @@ void startServer(void)
     int slen = sizeof (si_recv);
     struct sigaction sa;
     struct itimerval timer;
-    int ip_tos = IPTOS_LOWDELAY;
+    int ip_tos = IPTOS_THROUGHPUT;
 
     if (print_packet == 1) {
         memset (&sa, 0, sizeof(sa));
@@ -511,7 +511,7 @@ void startClient(void)
     struct itimerval timer;
     pthread_t packet_reception_thread;
     long t;
-    int ip_tos = IPTOS_LOWDELAY;
+    int ip_tos = IPTOS_THROUGHPUT;
 
     if (print_packet == 1) {
         memset (&sa, 0, sizeof(sa));
