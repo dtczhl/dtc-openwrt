@@ -1,11 +1,9 @@
 #!/bin/bash
 
 
-sleepTime=300
+sleepTime=62
 
-sendLengthList=(1800)
-
-queueSizeList=(212992)
+sendLengthList=$(seq 100 100 5000)
 
 # get filename of this script
 MY_FILENAME="$(basename "$0")"
@@ -29,21 +27,14 @@ argumentProcess (){
     key="$1"
     case $key in
     --server) # server
-        queueSize=${queueSizeList[-1]}
-        echo $queueSize 
-        sed -i -e "s/queueSize=.*/queueSize=${queueSize}/" /bin/dtcUdpTxRxDataCollector
         dtcUdpTxRxDataCollector -l &
         ;;
     --client) # client
-        # for i in ${queueSizeList[*]}; do
-        queueSize=${queueSizeList[-1]}
         for i in ${sendLengthList[*]}; do
             sendLength=$i
-            echo $sendLength
-            sed -i -e "s/queueSize=.*/queueSize=${queueSize}/" /bin/dtcUdpTxRxDataCollector
             sed -i -e "s/sendLength=.*/sendLength=${sendLength}/" /bin/dtcUdpTxRxDataCollector
             dtcUdpTxRxDataCollector -r &
-            sleep 600
+            sleep $sleepTime
             dtcUdpTxRxDataCollector -s
         done 
         ;;

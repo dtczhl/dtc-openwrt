@@ -34,8 +34,8 @@ dtc_sleep(struct timespec *ts_old, struct timespec *ts_wait)
     }
 
     if (ts_remaining.tv_sec < 0){
-        printf("*** Error\n ts_sec remaining <0\n");
-        exit(-1);
+        printf("*** time elasped already !!!\n");
+        return;
     }
 
     while (nanosleep(&ts_remaining, &ts_interrupt_remain) != 0){

@@ -65,15 +65,13 @@ while getopts ":rls" opt; do
 	r) # run
         dtcKillProgram dtc_udp_redundant_txrx
         sleep 2 # wait for server
-		date > $savePath/ReadMe$recordId 
 		myRunCmd="dtcDebugfsController -s uma -i $serverIp -p $serverPort -c enable"
-		# echo $myRunCmd >> $savePath/ReadMe$recordId 
-		eval $myRunCmd
+		# eval $myRunCmd
 
         dtc_udp_redundant_txrx --client \
             --target-address $serverIp $serverPort \
             --self-address 0.0.0.0 $clientPort \
-            --send-fatest \
+            --send-interval 1000000 \
             --send-length $sendLength \
             --record-directory $savePath --record-id $recordId \
             --send-log --recv-log \
@@ -83,25 +81,21 @@ while getopts ":rls" opt; do
 		;;
 	l) # listen only
         dtcKillProgram dtc_udp_redundant_txrx 
-		date > $savePath/ReadMe$recordId 
 
         dtc_udp_redundant_txrx --server \
             --self-address $serverIp $serverPort \
             --record-directory $savePath --record-id $recordId \
-            --queue-size $queueSize \
             --send-log --recv-log \
             --print-packet \
             --echo-back 
 
-		myListenCmd="dtcDebugfsController -i $clientIp -p $clientPort -c enable"
-		# echo $myListenCmd >> $savePath/ReadMe$recordId 
+		myListenCmd="dtcDebugfsController -s uma -i $clientIp -p $clientPort -c enable"
 		eval $myListenCmd 
 		echo "Listening..."
 		;;
 	s) # stop and save data
 		dtcDebugfsController -c disable
-		date >> $savePath/ReadMe$recordId 
-		ps | grep dtc_udp_redundant_txrx | grep -v grep | awk '{print $1}' | xargs -r kill -9
+        dtcKillProgram dtc_udp_redundant_txrx
 		# modify to your needs
 		cat ${dtcSockDir}/log1 > ${savePath}/sockLog1_${recordId}
 		cat ${dtcSockDir}/log2 > ${savePath}/sockLog2_${recordId}
