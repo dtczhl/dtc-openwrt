@@ -462,8 +462,8 @@ void startClient(void)
 
         dtc_sleep (&ts_send, &send_interval);
 
-        if (send (server_fd, send_buffer, send_length, 0) < 0)
-            die("*** Error\n send in client send failed");
+        while (send (server_fd, send_buffer, send_length, 0) < 0)
+            printf ("send in client send failed\n");
 
         if (send_log == 1) {
             if (clock_gettime (CLOCK_MONOTONIC, &ts_current_send) != 0)
