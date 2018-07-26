@@ -24,6 +24,7 @@ I copied the command to install the tools for Ubuntu 64bit here
 2. Download OpenWrt system. 
 
     `git clone https://github.com/openwrt/openwrt.git .`
+    
     `git checkout  d8655868ca04d12ad5ed36e26fc63d61b076e33d`
 
 3. Update feeds
