@@ -21,9 +21,10 @@ I copied the command to install the tools for Ubuntu 64bit here
       
       `cd dtcOpenWrt`
      
-2. Download OpenWrt system. To be compatible, better download the version that I forked from OpenWrt/LEDE
+2. Download OpenWrt system. 
 
-    `git clone https://github.com/dtczhl/openwrt-fork.git .`
+    `git clone https://github.com/openwrt/openwrt.git .`
+    `git checkout  d8655868ca04d12ad5ed36e26fc63d61b076e33d`
 
 3. Update feeds
 
