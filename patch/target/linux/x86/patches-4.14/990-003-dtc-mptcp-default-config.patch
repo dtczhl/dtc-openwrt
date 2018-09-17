@@ -1,0 +1,107 @@
+Index: linux-4.14.63/net/ipv4/Kconfig
+===================================================================
+--- linux-4.14.63.orig/net/ipv4/Kconfig
++++ linux-4.14.63/net/ipv4/Kconfig
+@@ -679,7 +679,7 @@ config TCP_CONG_BBR
+ config TCP_CONG_LIA
+ 	tristate "MPTCP Linked Increase"
+ 	depends on MPTCP
+-	default n
++	default y
+ 	---help---
+ 	MultiPath TCP Linked Increase Congestion Control
+ 	To enable it, just put 'lia' in tcp_congestion_control
+@@ -687,7 +687,7 @@ config TCP_CONG_LIA
+ config TCP_CONG_OLIA
+ 	tristate "MPTCP Opportunistic Linked Increase"
+ 	depends on MPTCP
+-	default n
++	default y
+ 	---help---
+ 	MultiPath TCP Opportunistic Linked Increase Congestion Control
+ 	To enable it, just put 'olia' in tcp_congestion_control
+@@ -695,7 +695,7 @@ config TCP_CONG_OLIA
+ config TCP_CONG_WVEGAS
+ 	tristate "MPTCP WVEGAS CONGESTION CONTROL"
+ 	depends on MPTCP
+-	default n
++	default y
+ 	---help---
+ 	wVegas congestion control for MPTCP
+ 	To enable it, just put 'wvegas' in tcp_congestion_control
+@@ -703,7 +703,7 @@ config TCP_CONG_WVEGAS
+ config TCP_CONG_BALIA
+ 	tristate "MPTCP BALIA CONGESTION CONTROL"
+ 	depends on MPTCP
+-	default n
++	default y
+ 	---help---
+ 	Multipath TCP Balanced Linked Adaptation Congestion Control
+ 	To enable it, just put 'balia' in tcp_congestion_control
+Index: linux-4.14.63/net/mptcp/Kconfig
+===================================================================
+--- linux-4.14.63.orig/net/mptcp/Kconfig
++++ linux-4.14.63/net/mptcp/Kconfig
+@@ -4,6 +4,7 @@
+ config MPTCP
+         bool "MPTCP protocol"
+         depends on (IPV6=y || IPV6=n)
++        default y
+         ---help---
+           This replaces the normal TCP stack with a Multipath TCP stack,
+           able to use several paths at once.
+@@ -11,6 +12,7 @@ config MPTCP
+ menuconfig MPTCP_PM_ADVANCED
+ 	bool "MPTCP: advanced path-manager control"
+ 	depends on MPTCP=y
++    default y
+ 	---help---
+ 	  Support for selection of different path-managers. You should choose 'Y' here,
+ 	  because otherwise you will not actively create new MPTCP-subflows.
+@@ -20,12 +22,14 @@ if MPTCP_PM_ADVANCED
+ config MPTCP_FULLMESH
+ 	tristate "MPTCP Full-Mesh Path-Manager"
+ 	depends on MPTCP=y
++    default y
+ 	---help---
+ 	  This path-management module will create a full-mesh among all IP-addresses.
+ 
+ config MPTCP_NDIFFPORTS
+ 	tristate "MPTCP ndiff-ports"
+ 	depends on MPTCP=y
++    default y
+ 	---help---
+ 	  This path-management module will create multiple subflows between the same
+ 	  pair of IP-addresses, modifying the source-port. You can set the number
+@@ -34,6 +38,7 @@ config MPTCP_NDIFFPORTS
+ config MPTCP_BINDER
+ 	tristate "MPTCP Binder"
+ 	depends on (MPTCP=y)
++    default y
+ 	---help---
+ 	  This path-management module works like ndiffports, and adds the sysctl
+ 	  option to set the gateway (and/or path to) per each additional subflow
+@@ -72,6 +77,7 @@ config DEFAULT_MPTCP_PM
+ menuconfig MPTCP_SCHED_ADVANCED
+ 	bool "MPTCP: advanced scheduler control"
+ 	depends on MPTCP=y
++    default y
+ 	---help---
+ 	  Support for selection of different schedulers. You should choose 'Y' here,
+ 	  if you want to choose a different scheduler than the default one.
+@@ -81,6 +87,7 @@ if MPTCP_SCHED_ADVANCED
+ config MPTCP_ROUNDROBIN
+ 	tristate "MPTCP Round-Robin"
+ 	depends on (MPTCP=y)
++    default y
+ 	---help---
+ 	  This is a very simple round-robin scheduler. Probably has bad performance
+ 	  but might be interesting for researchers.
+@@ -88,6 +95,7 @@ config MPTCP_ROUNDROBIN
+ config MPTCP_REDUNDANT
+ 	tristate "MPTCP Redundant"
+ 	depends on (MPTCP=y)
++    default y
+ 	---help---
+ 	  This scheduler sends all packets redundantly over all subflows to decreases
+ 	  latency and jitter on the cost of lower throughput.
