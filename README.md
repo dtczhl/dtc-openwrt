@@ -36,7 +36,7 @@ I copied the command to install the tools for Ubuntu 64bit here
 
 3. Download this repo. Must be placed in the root directory of OpenWrt source
 
-    `git clone https://github.com/dtczhl/dtc-openwrt.git`
+    `git clone -b 4.9.82 https://github.com/dtczhl/dtc-openwrt.git`
     
 4. Install my system configuration. Run 
 
