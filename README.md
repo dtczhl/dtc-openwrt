@@ -3,7 +3,7 @@
 Customized OpenWrt OS for research and fun
 
 Huanle Zhang at UC Davis  
-[www.huanlezhang.com](www.huanlezhang.com)
+https://www.huanlezhang.com
 
 
 ## About branch 4.14.63
@@ -14,7 +14,7 @@ Huanle Zhang at UC Davis
 
 ## Install
 
-1. Install required tools. Refer to [OpenWrt build system -- Installation](https://wiki.openwrt.org/doc/howto/buildroot.exigence). For Ubuntu 64bit:
+1. Install required tools. Refer to [OpenWrt build system -- Installation](https://wiki.openwrt.org/doc/howto/buildroot.exigence). For ubuntu 64bit:
 
   ```
   sudo apt-get install build-essential subversion libncurses5-dev zlib1g-dev gawk gcc-multilib flex git-core gettext libssl-dev unzip
@@ -26,7 +26,7 @@ Huanle Zhang at UC Davis
   git clone https://github.com/openwrt/openwrt.git
   git checkout cad9519ebaf88cb4f3669ca1a04f04eb5d096311
   ```
-3. Go to folder (i.e., root directory of OpenWrt), and update feeds
+3. Go to the root directory of OpenWrt, and update feeds
 
   ```
   ./scripts/feeds update -a
@@ -36,5 +36,5 @@ Huanle Zhang at UC Davis
 4. Download this repo. Must be placed in the root directory of OpenWrt
 
   ```
-  git clone -b 4.14.63 https://github.com/dtczhl/dtc-openwrt.git 
+  git clone -b 4.14.63 https://github.com/dtczhl/dtc-openwrt.git
   ```
