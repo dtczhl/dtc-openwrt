@@ -86,7 +86,7 @@ def install_kernel(configs):
 
 
 def uninstall_kernel(configs):
-    """uninstall kernel patch"""
+    """uninstall kernel patch."""
     print('<<<<<< Uninstall kernel patch from ' + configs["KERNEL_PATCH_DST"])
     src_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), configs["KERNEL_PATCH_SRC"])
     dst_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), configs["KERNEL_PATCH_DST"])
