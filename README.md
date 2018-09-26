@@ -10,6 +10,7 @@ https://www.huanlezhang.com
 
 1. Linux kernel: **4.14.63**
 2. [MPTCP](http://multipath-tcp.org/pmwiki.php?n=Main.Release94): **v0.94**
+3. Hardware: [PC Engines apu2](https://www.pcengines.ch/apu2.htm) based on x86_64
 
 
 ## Install
