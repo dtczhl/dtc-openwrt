@@ -5,34 +5,40 @@
 `/sys/kernel/debug/tracing`
 
 * available tracers
-```
-cat available_tracers
-```
+
+  ```
+  cat available_tracers
+  ```
 
 * select tracer, e.g.,
-```
-echo -n function > current_tracer
-```
+
+  ```
+  echo -n function > current_tracer
+  ```
 
 * show trace
-```
-cat trace
-```
+
+  ```
+  cat trace
+  ```
 
 * enable/disable tracing
-```
-echo -n 1(0) > tracing_on
-```
+
+  ```
+  echo -n 1(0) > tracing_on
+  ```
 
 * trace marker to sync kernel and application
-```
-echo -n hello world > trace_marker
-```
+
+  ```
+  echo -n hello world > trace_marker
+  ```
 
 * set buffer size
-```
-echo -n 50 > buffer_size_kb
-```
+
+  ```
+  echo -n 50 > buffer_size_kb
+  ```
 
 
 
