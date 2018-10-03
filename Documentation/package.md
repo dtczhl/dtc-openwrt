@@ -1,6 +1,15 @@
 ### Some useful packages
 
-`make menuconfig`
+    make menuconfig 
+
+---
+
+
+* **Global build settings**
+
+  * **Kernel build options**
+
+    * `Compile the kernel with tracing support` and all: ftrace for kernel debugging and tracing
 
 * **Base system**
 
@@ -55,6 +64,3 @@
     * `bash`: bash
 
   * `pciutils`: pci-related tools
-
-
-  
