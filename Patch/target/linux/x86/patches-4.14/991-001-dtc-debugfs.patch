@@ -1,0 +1,14 @@
+Index: linux-4.14.63/net/Makefile
+===================================================================
+--- linux-4.14.63.orig/net/Makefile
++++ linux-4.14.63/net/Makefile
+@@ -11,6 +11,9 @@ obj-$(CONFIG_NET)		:= socket.o core/
+ tmp-$(CONFIG_COMPAT) 		:= compat.o
+ obj-$(CONFIG_NET)		+= $(tmp-y)
+ 
++# added by dtc
++obj-y += ../../../../../dtc-openwrt/Library/dtc_debugfs/
++
+ # LLC has to be linked before the files in net/802/
+ obj-$(CONFIG_LLC)		+= llc/
+ obj-$(CONFIG_NET)		+= ethernet/ 802/ sched/ netlink/ bpf/
