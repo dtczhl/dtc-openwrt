@@ -2,13 +2,66 @@ Index: linux-4.14.63/net/Makefile
 ===================================================================
 --- linux-4.14.63.orig/net/Makefile
 +++ linux-4.14.63/net/Makefile
-@@ -11,6 +11,9 @@ obj-$(CONFIG_NET)		:= socket.o core/
+@@ -11,6 +11,8 @@ obj-$(CONFIG_NET)		:= socket.o core/
  tmp-$(CONFIG_COMPAT) 		:= compat.o
  obj-$(CONFIG_NET)		+= $(tmp-y)
  
-+# added by dtc
-+obj-y += ../../../../../dtc-openwrt/Library/dtc_debugfs/
++obj-$(CONFIG_DTC_DEBUGFS) += ../../../../../dtc-openwrt/Library/dtc_debugfs/
 +
  # LLC has to be linked before the files in net/802/
  obj-$(CONFIG_LLC)		+= llc/
  obj-$(CONFIG_NET)		+= ethernet/ 802/ sched/ netlink/ bpf/
+Index: linux-4.14.63/net/socket.c
+===================================================================
+--- linux-4.14.63.orig/net/socket.c
++++ linux-4.14.63/net/socket.c
+@@ -109,6 +109,10 @@
+ #include <net/busy_poll.h>
+ #include <linux/errqueue.h>
+ 
++#ifdef CONFIG_DTC_DEBUGFS
++#include "../../../../../dtc-openwrt/Library/dtc_debugfs/dtc_debugfs.h"
++#endif
++
+ #ifdef CONFIG_NET_RX_BUSY_POLL
+ unsigned int sysctl_net_busy_read __read_mostly;
+ unsigned int sysctl_net_busy_poll __read_mostly;
+@@ -2644,6 +2648,14 @@ static int __init sock_init(void)
+ 
+ 	ptp_classifier_init();
+ 
++#ifdef CONFIG_DTC_DEBUGFS
++    if (dtc_init_debugfs("dtcSock") == 0) {
++        printk(KERN_ALERT "dtc debugfs: init_debugfs succeeds\n");
++    } else {
++        printk(KERN_ALERT "*** dtc debugfs: in sock_init, init_debufs fails\n");
++    }
++#endif
++
+ out:
+ 	return err;
+ 
+Index: linux-4.14.63/net/Kconfig
+===================================================================
+--- linux-4.14.63.orig/net/Kconfig
++++ linux-4.14.63/net/Kconfig
+@@ -95,6 +95,7 @@ source "net/ipv4/Kconfig"
+ source "net/ipv6/Kconfig"
+ source "net/netlabel/Kconfig"
+ source "net/mptcp/Kconfig"
++source "net/dtc_openwrt/dtc_debugfs/Kconfig"
+ 
+ endif # if INET
+ 
+Index: linux-4.14.63/net/dtc_openwrt/dtc_debugfs/Kconfig
+===================================================================
+--- /dev/null
++++ linux-4.14.63/net/dtc_openwrt/dtc_debugfs/Kconfig
+@@ -0,0 +1,7 @@
++# debugfs
++config DTC_DEBUGFS
++    bool "dtc-openwrt: debugfs"
++    default y
++    ---help---
++        This adds debugfs functionality
++

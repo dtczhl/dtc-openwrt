@@ -10,8 +10,8 @@ u32 dtc_debugfs_enable = 0;
 /* target */
 // support 10 targets
 static struct dentry *file_target;
-// 22 * 10 + 2
-static char target_ip_port[222] = "0.0.0.0 0\n";
+// 22 * 10 + 3
+static char target_ip_port[223] = "0.0.0.0 0;\n";
 u32 dtc_debugfs_target_ip[10];
 u16 dtc_debugfs_target_port[10];
 u8 dtc_debugfs_target_count = 0;
@@ -19,8 +19,8 @@ u8 dtc_debugfs_target_count = 0;
 /* self */
 // support 10 selfs
 static struct dentry *file_self;
-// 22 * 10 + 2
-static char self_ip_port[222] = "0.0.0.0 0\n";
+// 22 * 10 + 3
+static char self_ip_port[223] = "0.0.0.0 0;\n";
 u32 dtc_debugfs_self_ip[10];
 u16 dtc_debugfs_self_port[10];
 u8 dtc_debugfs_self_count = 0;
@@ -39,7 +39,7 @@ void dtc_debugfs_add_info(char *pInfo) {
     // pInfo: a string, must ends with \0
     if (info_buf_pos + strlen(pInfo) >= INFO_BUFFER_SIZE) {
         // not enough buffer size
-        char msg = "overflow!!!\n";
+        char msg[] = "overflow!!!\n";
         memcpy(info_buf + INFO_BUFFER_SIZE - strlen(msg) - 1, msg, strlen(msg));
         return;
     }
@@ -53,7 +53,7 @@ static ssize_t info_read_file(struct file *file, char __user *user_buf,
                                 size_t count, loff_t *ppos) {
     return simple_read_from_buffer(user_buf, count, ppos, info_buf, info_buf_pos);            }
 
-static struct file_operations info_ops = {
+static struct file_operations info_fops = {
     .read = info_read_file,
 };
 
@@ -93,7 +93,7 @@ static ssize_t target_write_file(struct file *file, const char __user *user_buf,
         } else if (target_ip_port[i] == ' ') { // delimiter between ip and port
             ip_temp = (ip_temp << 8) + sub_ip;
             sub_ip = 0;
-            substr_index = (++substr_index) % 2;
+            substr_index = (substr_index + 1) % 2;
         } else if (target_ip_port[i] == ';') { // end of
             dtc_debugfs_target_ip[dtc_debugfs_target_count] = htonl(ip_temp);
             dtc_debugfs_target_port[dtc_debugfs_target_count] = htons(port_temp);
@@ -146,7 +146,7 @@ static ssize_t self_write_file(struct file *file, const char __user *user_buf,
         } else if (self_ip_port[i] == ' ') { // delimiter between ip and port
             ip_temp = (ip_temp << 8) + sub_ip;
             sub_ip = 0;
-            substr_index = (++substr_index) % 2;
+            substr_index = (substr_index + 1) % 2;
         } else if (self_ip_port[i] == ';') { // end of
             dtc_debugfs_self_ip[dtc_debugfs_self_count] = htonl(ip_temp);
             dtc_debugfs_self_port[dtc_debugfs_self_count] = htons(port_temp);
@@ -158,10 +158,12 @@ static ssize_t self_write_file(struct file *file, const char __user *user_buf,
     return count;
 }
 
-static struct file_operations target_fops = {
+static struct file_operations self_fops = {
     .read = self_read_file,
     .write = self_write_file,
 };
+
+
 
 /* initialization */
 int dtc_init_debugfs(char *dirname) {
@@ -188,7 +190,7 @@ int dtc_init_debugfs(char *dirname) {
     }
 
     /* self */
-    file_self = debugfs_create_file("info", 0666, main_dir, NULL, &self_fops);
+    file_self = debugfs_create_file("self", 0666, main_dir, NULL, &self_fops);
     if (!file_self) {
         printk(KERN_ALERT "*** dtc debugfs: self file failed!\n");
         return -1;
@@ -200,6 +202,7 @@ int dtc_init_debugfs(char *dirname) {
         printk(KERN_ALERT "*** dtc debugfs: info file failed!\n");
         return -1;
     }
+    dtc_debugfs_add_info("--- Info ---\n");
 
     return 0;
 }
